@@ -15,17 +15,20 @@ fn main() {
     let img = image::open(&Path::new(&input_filename)).unwrap();
 
     let (width, height) = img.dimensions();
-    println!("{}", width);
-    println!("{}", height);
-
-    for x in 0..width - 1 {
-        for y in 0..height {
+    println!("{};", width);
+    println!("{};", height);
+    for y in 0..height {
+        for x in 0..width - 1 {
             let pixel = img.get_pixel(x, y);
             //decode the pixel to a hex
-            if y != 0 {
+            if x != 0 {
                 print!(",");
             }
-            print!("{:?}", pixel.to_rgb());
+            //print!("{:?}", pixel.to_rgb());
+            let rgb = pixel.to_rgb();
+            print!("{:02x}", rgb[0]);
+            print!("{:02x}", rgb[1]);
+            print!("{:02x}", rgb[2]);
         }
         println!(";");
     }
