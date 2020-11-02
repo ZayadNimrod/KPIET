@@ -1,10 +1,9 @@
 use image;
 use std::fs::File;
 use std::env;
-use std::path::Path;
 
 use image::{GenericImageView, Pixel};
-use std::io::{Write, Error};
+use std::io::{Write};
 
 
 fn write(out: &mut File, to_write: &str) {
@@ -45,6 +44,8 @@ fn main() {
 
         write(&mut out, ";\n");
     }
+
+    println!("Image encoded, operation complete");
 }
 
 
