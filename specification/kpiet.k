@@ -77,15 +77,13 @@ module KPIET
 
     rule [translate_command] TranslateCommand [L1 H1] [L2 H2] => LookupCommand LightnessDifference L1 L2 HueDifference H1 H2
 
-
+    rule [lightness_difference] LightnessDifference light   light   => 0
     rule [lightness_difference] LightnessDifference normal  normal  => 0
     rule [lightness_difference] LightnessDifference dark    dark    => 0
-    rule [lightness_difference] LightnessDifference light   normal  => 1
-    rule [lightness_difference] LightnessDifference normal  dark    => 1
-    rule [lightness_difference] LightnessDifference dark    light   => 1
-    rule [lightness_difference] LightnessDifference light   dark    => 2
-    rule [lightness_difference] LightnessDifference normal  light   => 2
-    rule [lightness_difference] LightnessDifference dark    normal  => 2
+    rule [lightness_difference] LightnessDifference L       normal  => LightnessDifference L light +Int 1
+    rule [lightness_difference] LightnessDifference L       dark    => LightnessDifference L normal +Int 1
+    rule [lightness_difference] LightnessDifference L       light   => LightnessDifference L dark +Int 1
+
 
     rule [hue_difference]       HueDifference       red     red     => 0
     rule [hue_difference]       HueDifference       yellow  yellow  => 0
@@ -93,36 +91,12 @@ module KPIET
     rule [hue_difference]       HueDifference       cyan    cyan    => 0
     rule [hue_difference]       HueDifference       blue    blue    => 0
     rule [hue_difference]       HueDifference       magenta magenta => 0
-    rule [hue_difference]       HueDifference       red     yellow  => 1
-    rule [hue_difference]       HueDifference       yellow  green   => 1
-    rule [hue_difference]       HueDifference       green   cyan    => 1
-    rule [hue_difference]       HueDifference       cyan    blue    => 1
-    rule [hue_difference]       HueDifference       blue    magenta => 1
-    rule [hue_difference]       HueDifference       magenta red     => 1
-    rule [hue_difference]       HueDifference       red     green   => 2
-    rule [hue_difference]       HueDifference       yellow  cyan    => 2
-    rule [hue_difference]       HueDifference       green   blue    => 2
-    rule [hue_difference]       HueDifference       cyan    magenta => 2
-    rule [hue_difference]       HueDifference       blue    red     => 2
-    rule [hue_difference]       HueDifference       magenta yellow  => 2
-    rule [hue_difference]       HueDifference       red     cyan    => 3
-    rule [hue_difference]       HueDifference       yellow  blue    => 3
-    rule [hue_difference]       HueDifference       green   magenta => 3
-    rule [hue_difference]       HueDifference       cyan    red     => 3
-    rule [hue_difference]       HueDifference       blue    yellow  => 3
-    rule [hue_difference]       HueDifference       magenta green   => 3
-    rule [hue_difference]       HueDifference       red     blue    => 4
-    rule [hue_difference]       HueDifference       yellow  magenta => 4
-    rule [hue_difference]       HueDifference       green   red     => 4
-    rule [hue_difference]       HueDifference       cyan    yellow  => 4
-    rule [hue_difference]       HueDifference       blue    green   => 4
-    rule [hue_difference]       HueDifference       magenta cyan    => 4
-    rule [hue_difference]       HueDifference       red     magenta => 5
-    rule [hue_difference]       HueDifference       yellow  red     => 5
-    rule [hue_difference]       HueDifference       green   yellow  => 5
-    rule [hue_difference]       HueDifference       cyan    green   => 5
-    rule [hue_difference]       HueDifference       blue    cyan    => 5
-    rule [hue_difference]       HueDifference       magenta blue    => 5
+    rule [hue_difference]       HueDifference       H       yellow  => HueDifference H red      +Int 1
+    rule [hue_difference]       HueDifference       H       green   => HueDifference H yellow   +Int 1
+    rule [hue_difference]       HueDifference       H       cyan    => HueDifference H green    +Int 1
+    rule [hue_difference]       HueDifference       H       blue    => HueDifference H cyan     +Int 1
+    rule [hue_difference]       HueDifference       H       magenta => HueDifference H blue     +Int 1
+    rule [hue_difference]       HueDifference       H       red     => HueDifference H magenta  +Int 1
     
     rule [command_resolution]   LookupCommand 0 0 => .
     rule [command_resolution]   LookupCommand 1 0 => push
