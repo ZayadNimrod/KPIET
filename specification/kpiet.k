@@ -29,7 +29,7 @@ module KPIET
 
 
     //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
-    syntax ColorIndex ::=  "[" Lightness Hue "]" | "[" "black" "]" | "[" "white" "]"
+    syntax ColorIndex ::=  "[" Lightness Hue "]" | "[" Lightness"black" "]" | "[" Lightness "white" "]"
     syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
     syntax Lightness ::= "light" | "normal" | "dark"
     
@@ -64,10 +64,10 @@ module KPIET
     rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xff00ff => [ normal magenta ]
     rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xc000c0 => [ dark magenta ]
     
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x000000 => [ black ] //[ light red ] if we use [black], then kompile treats this as an EOF?
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffffff => [ white ]    
+    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x000000 => [ dark black ] //[ light red ] if we use [black], then kompile treats this as an EOF?
+    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffffff => [ light white ]    
     //cases of an unkown hex should be translated as white, according to spec
-    rule [translate-hexcode-encountered-illegal]: TranslateHexcode X:Id => [ white ]  //TODO: need some test on this, i.e program w/non-spec pixel becomes white
+    rule [translate-hexcode-encountered-illegal]: TranslateHexcode X:Id => [ light white ]  //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
 
     syntax Instruction ::=          "push"  |   "pop"   |
@@ -85,7 +85,8 @@ module KPIET
     syntax LightnessDifferenceCall ::= "LightnessDifference" Lightness Lightness
     syntax HueDifferenceCall ::= "HueDifference" Hue Hue
 
-
+    // Get the instruction that a transition between two colours maps to
+    // get the diff
     rule [translate-instruction]: TranslateInstruction [L1 H1] [L2 H2] => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
 
     rule [lightness-difference]: LightnessDifference light   light   => 0
