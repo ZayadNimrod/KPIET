@@ -1,6 +1,7 @@
 module KPIET
     imports DOMAINS-SYNTAX
     imports DOMAINS
+    //TODO: Hold on, what if we don't place black pixels in the <program> cell. Thus, if we look them up, we fail, and instead return blac. this laos means out of bounds pixels will be considred black, which will mimc the functionality edges have.
     configuration <T>        
     
         <k> .K </k> //the current instruction we are working on
@@ -20,8 +21,8 @@ module KPIET
         <output color="Orchid" stream = "stdout"> .List </output>
 
 
-        <width> . </width> //used when building up <program>
-        <height> . </height>
+        //<width> . </width> //used when building up <program>
+        //<height> . </height>
         <buildingx>0</buildingx>
         <buildingy>0</buildingy>
     </T>
@@ -33,8 +34,8 @@ module KPIET
     syntax K ::= "point" "(" Int "," Int ")"
 
 
-    syntax Program ::= Int ";" Int ";" Lines
-
+    //syntax Program ::= Int ";" Int ";" Lines
+    syntax Program ::= Lines
 
     syntax Lines ::= List{Line, ";"}
     syntax Line ::= List{Pixel, ","} 
@@ -49,6 +50,7 @@ module KPIET
 
     //get next pixel, convert to colour, map to its location, go to next pixel
     rule H:Hexcode => TranslateHexcode H            [structural] 
+    
 
 
 
@@ -67,6 +69,15 @@ module KPIET
     
     // TODO get a pixel, move it into <program> mapped to <x>,<y>
 
+    rule[convert-pixel-to-colour]:
+        <k> H:Hexcode => TranslateHexcode H ... </k>
+    //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
+    rule [place-pixel-in-map]:
+        <k> C:ColorIndex => . ...</k>
+        <buildingx> X:Int </buildingx>
+        <buildingy> Y:Int </buildingy>
+        <program> ... point(X,Y) |-> C</program>
+    
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
     syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
@@ -221,11 +232,11 @@ module KPIET
     //TODO: This line... why is it so messy? Why does it throw up errors for the most bizarre things? I can't name the variable I?
     //not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
     rule [instruction-not]: <k> not => .</k>
-                            <stack> ListItem(Item:Int) => ListItem(if (Item ==Bool 0) then 1 else 0 fi) ... </stack> 
+                            <stack> ListItem(I:Int) => ListItem(if (I ==Bool 0) then 1 else 0 fi) ... </stack> 
 
     //greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
     rule [instruction-greater]: <k> great =>  .</k>
-                            <stack>ListItem(I1:Int) ListItem(I2:Int) => ListItem(if (I2 > I1) then 1 else 0 fi) ... </stack> 
+                            <stack>ListItem(I1:Int) ListItem(I2:Int) => ListItem(if (I2 >Int I1) then 1 else 0 fi) ... </stack> 
     //pointer: Pops the top value off the stack and rotates the DP clockwise that many steps (anticlockwise if negative).
     rule [instruction-pointer]: <k> ptr =>  .</k>
                             <stack>ListItem(I:Int) => . ... </stack> 
@@ -240,7 +251,7 @@ module KPIET
 
     //roll: Pops the top two values off the stack and "rolls" the remaining stack entries to a depth equal to the second value popped, by a number of rolls equal to the first value popped. A single roll to depth n is defined as burying the top value on the stack n deep and bringing all values above it up by 1 place. A negative number of rolls rolls in the opposite direction. A negative depth is an error and the command is ignored. If a roll is greater than an implementation-dependent maximum stack depth, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
     rule [instruction-roll]: <k>roll => .</k>
-        <stack></stack> ///TODO: AAAAAAA how to even begin
+        //<stack> </stack> ///TODO: AAAAAAA how to even begin
 
 
     //in: Reads a value from STDIN as either a number or character, depending on the particular incarnation of this command and pushes it on to the stack. If no input is waiting on STDIN, this is an error and the command is ignored. If an integer read does not receive an integer value, this is an error and the command is ignored.

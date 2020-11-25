@@ -27,7 +27,7 @@ fn main() {
     let mut out = File::create(&output_filename).expect("couldn't create file:");
 
     let header = format!("{};{};\n", width, height);
-    write(&mut out, &header);
+    //write(&mut out, &header);
 
 
     for y in 0..height {
