@@ -18,20 +18,68 @@ module KPIET
 
         <input color="magenta" stream = "stdin"> .List </input>
         <output color="Orchid" stream = "stdout"> .List </output>
+
+
+        <width> . </width> //used when building up <program>
+        <height> . </height>
+        <buildingx>0</buildingx>
+        <buildingy>0</buildingy>
     </T>
 
+    //####
+    // RELATED TO PARSING PROGRAM INTO <program> CELL
+    //####
 
     syntax K ::= "point" "(" Int "," Int ")"
+
+
+    syntax Program ::= Int ";" Int ";" Lines
+
+
+    syntax Lines ::= List{Line, ";"}
+    syntax Line ::= List{Pixel, ","} 
+
+    syntax Pixel ::= Colour
+
+    //get the width and height of the program
+    //rule    <k>I1:Int ; I2:Int ; => . ...</k>       [structural]
+    //        <width> . => I1 </width>
+    //        <height> . => I2 </height>
+    
+
+    //get next pixel, convert to colour, map to its location, go to next pixel
+    rule H:Hexcode => TranslateHexcode H            [structural] 
+
+
+
+    //TODO Don't quite like how these rules were realised
+    rule .Line => .
+    rule .Lines => .
+    rule [parse-next-line]: 
+        //<k> ; => . ... </k>     
+        <k>L:Line ; Ls:Lines => L ~> Ls</k>                 
+        <buildingx> X:Int => 0 </buildingx>
+        <buildingy> Y:Int => Y +Int 1 </buildingy>  [structural]
+    rule [parse-next-pixel]:
+        //<k> , => . ...</k>        
+        <k>P:Pixel , L:Line => P ~> L</k>
+        <buildingx> X:Int => X +Int 1 </buildingx>  [structural]
+    
+    // TODO get a pixel, move it into <program> mapped to <x>,<y>
+
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
     syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
 
 
 
+
     //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
-    syntax ColorIndex ::=  "[" Lightness Hue "]" | "[" Lightness"black" "]" | "[" Lightness "white" "]"
+    syntax ColorIndex ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")"
     syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
-    syntax Lightness ::= "light" | "normal" | "dark"
+    syntax Lightness ::= "light" | "normal" | "dark" 
+
+    syntax BlackOrWhite ::= "black" | "white"
     
     syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
                         "xffffc0"   | "xffff00" | "x00c000" | 
@@ -41,35 +89,38 @@ module KPIET
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
                         "x000000"   | "xffffff" | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
                         
-
+    //####
+    // RELATED TO VIRTUAL MACHINE
+    //####
     rule [translate-hexcode-no-repeat]: TranslateHexcode TranslateHexcode  C:Colour => TranslateHexcode C
     rule [translate-hexcode-encountered-index]:   TranslateHexcode C:ColorIndex  => C
 
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffc0c0 => [ light red ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xff0000 => [ normal red ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xc00000 => [ dark red ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffffc0 => [ light yellow ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffff00 => [ normal yellow ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x00c000 => [ dark yellow ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xc0ffc0 => [ light green ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x00ff00 => [ normal green ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x00c000 => [ dark green ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xc0ffff => [ light cyan ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x00ffff => [ normal cyan ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x00c0c0 => [ dark cyan ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xc0c0ff => [ light blue ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x0000ff => [ normal blue ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x0000c0 => [ dark blue ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffc0ff => [ light magenta ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xff00ff => [ normal magenta ]
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xc000c0 => [ dark magenta ]
+    rule [translate-hexcode-encountered-hexcode-light-red]:     TranslateHexcode xffc0c0 => color ( light red )
+    rule [translate-hexcode-encountered-hexcode-normal-red]:    TranslateHexcode xff0000 => color ( normal red )
+    rule [translate-hexcode-encountered-hexcode-dark-red]:      TranslateHexcode xc00000 => color ( dark red )
+    rule [translate-hexcode-encountered-hexcode-light-yellow]:  TranslateHexcode xffffc0 => color ( light yellow )
+    rule [translate-hexcode-encountered-hexcode-normal-yellow]: TranslateHexcode xffff00 => color ( normal yellow )
+    rule [translate-hexcode-encountered-hexcode-dark-yellow]:   TranslateHexcode x00c000 => color ( dark yellow )
+    rule [translate-hexcode-encountered-hexcode-light-green]:   TranslateHexcode xc0ffc0 => color ( light green )
+    rule [translate-hexcode-encountered-hexcode-normal-green]:  TranslateHexcode x00ff00 => color ( normal green )
+    rule [translate-hexcode-encountered-hexcode-dark-green]:    TranslateHexcode x00c000 => color ( dark green )
+    rule [translate-hexcode-encountered-hexcode-light-cyan]:    TranslateHexcode xc0ffff => color ( light cyan )
+    rule [translate-hexcode-encountered-hexcode-normal-cyan]:   TranslateHexcode x00ffff => color ( normal cyan )
+    rule [translate-hexcode-encountered-hexcode-dark-cyan]:     TranslateHexcode x00c0c0 => color ( dark cyan )
+    rule [translate-hexcode-encountered-hexcode-light-blue]:    TranslateHexcode xc0c0ff => color ( light blue )
+    rule [translate-hexcode-encountered-hexcode-normal-blue]:   TranslateHexcode x0000ff => color ( normal blue )
+    rule [translate-hexcode-encountered-hexcode-dark-blue]:     TranslateHexcode x0000c0 => color ( dark blue )
+    rule [translate-hexcode-encountered-hexcode-light-magenta]: TranslateHexcode xffc0ff => color ( light magenta )
+    rule [translate-hexcode-encountered-hexcode-normal-magenta]:TranslateHexcode xff00ff => color ( normal magenta )
+    rule [translate-hexcode-encountered-hexcode-dark-magenta]:  TranslateHexcode xc000c0 => color ( dark magenta )
     
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode x000000 => [ dark black ] //[ light red ] if we use [black], then kompile treats this as an EOF?
-    rule [translate-hexcode-encountered-hexcode]: TranslateHexcode xffffff => [ light white ]    
+    rule [translate-hexcode-encountered-hexcode-black]:         TranslateHexcode x000000 => color ( black )
+    rule [translate-hexcode-encountered-hexcode-white]:         TranslateHexcode xffffff => color ( white )    
     //cases of an unkown hex should be translated as white, according to spec
-    rule [translate-hexcode-encountered-illegal]: TranslateHexcode X:Id => [ light white ]  //TODO: need some test on this, i.e program w/non-spec pixel becomes white
+    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _X:Id => color ( white )  
+    //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
-
+    syntax KResult::= Int | ColorIndex
     syntax Instruction ::=          "push"  |   "pop"   |
                         "add"   |   "sub"   |   "mult"  |
                         "div"   |   "mod"   |   "not"   |
@@ -80,35 +131,45 @@ module KPIET
                         | "TranslateInstruction" Colour Colour [strict]
                         | "LookupInstruction" Int Int [strict]
 
+
     syntax Int ::=      LightnessDifferenceCall 
                     |   HueDifferenceCall
     syntax LightnessDifferenceCall ::= "LightnessDifference" Lightness Lightness
     syntax HueDifferenceCall ::= "HueDifference" Hue Hue
 
     // Get the instruction that a transition between two colours maps to
-    // get the diff
-    rule [translate-instruction]: TranslateInstruction [L1 H1] [L2 H2] => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
+    // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
+    rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
+    //When a white pixel is involved in the transition, no instruction is exectuted
+    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _C:ColorIndex   => . //moving from white to another pixel results in NOP
+    rule [translate-instruction-to-white]:      TranslateInstruction _C:ColorIndex color(white)   => . //moving to  white from another pixel results in NOP
+    //TODO: transitions involving black pixels
 
-    rule [lightness-difference]: LightnessDifference light   light   => 0
-    rule [lightness-difference]: LightnessDifference normal  normal  => 0
-    rule [lightness-difference]: LightnessDifference dark    dark    => 0
-    rule [lightness-difference]: LightnessDifference L       normal  => LightnessDifference L light +Int 1
-    rule [lightness-difference]: LightnessDifference L       dark    => LightnessDifference L normal +Int 1
-    rule [lightness-difference]: LightnessDifference L       light   => LightnessDifference L dark +Int 1
+    //The difference between two lightnesses of the same lightness is zero
+    rule [lightness-difference-base-light]:         LightnessDifference light   light   => 0
+    rule [lightness-difference-base-normal]:        LightnessDifference normal  normal  => 0
+    rule [lightness-difference-base-dark]:          LightnessDifference dark    dark    => 0
+    //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
+    rule [lightness-difference-inductive-light]:    LightnessDifference L       normal  => LightnessDifference L light +Int 1
+    rule [lightness-difference-inductive-normal]:   LightnessDifference L       dark    => LightnessDifference L normal +Int 1
+    rule [lightness-difference-inductive-dark]:     LightnessDifference L       light   => LightnessDifference L dark +Int 1
+
+    //The difference in hues of the same hues is zero
+    rule [hue-difference-base-red]:             HueDifference       red     red     => 0
+    rule [hue-difference-base-yellow]:          HueDifference       yellow  yellow  => 0
+    rule [hue-difference-base-green]:           HueDifference       green   green   => 0
+    rule [hue-difference-base-cyan]:            HueDifference       cyan    cyan    => 0
+    rule [hue-difference-base-blue]:            HueDifference       blue    blue    => 0
+    rule [hue-difference-base-magenta]:         HueDifference       magenta magenta => 0
+    //If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
+    rule [hue-difference-inductive-yellow]:     HueDifference       H       yellow  => HueDifference H red      +Int 1
+    rule [hue-difference-inductive-green]:      HueDifference       H       green   => HueDifference H yellow   +Int 1
+    rule [hue-difference-inductive-cyan]:       HueDifference       H       cyan    => HueDifference H green    +Int 1
+    rule [hue-difference-inductive-blue]:       HueDifference       H       blue    => HueDifference H cyan     +Int 1
+    rule [hue-difference-inductive-magenta]:    HueDifference       H       magenta => HueDifference H blue     +Int 1
+    rule [hue-difference-inductive-red]:        HueDifference       H       red     => HueDifference H magenta  +Int 1
 
 
-    rule [hue-difference]:       HueDifference       red     red     => 0
-    rule [hue-difference]:       HueDifference       yellow  yellow  => 0
-    rule [hue-difference]:       HueDifference       green   green   => 0
-    rule [hue-difference]:       HueDifference       cyan    cyan    => 0
-    rule [hue-difference]:       HueDifference       blue    blue    => 0
-    rule [hue-difference]:       HueDifference       magenta magenta => 0
-    rule [hue-difference]:       HueDifference       H       yellow  => HueDifference H red      +Int 1
-    rule [hue-difference]:       HueDifference       H       green   => HueDifference H yellow   +Int 1
-    rule [hue-difference]:       HueDifference       H       cyan    => HueDifference H green    +Int 1
-    rule [hue-difference]:       HueDifference       H       blue    => HueDifference H cyan     +Int 1
-    rule [hue-difference]:       HueDifference       H       magenta => HueDifference H blue     +Int 1
-    rule [hue-difference]:       HueDifference       H       red     => HueDifference H magenta  +Int 1
     
     rule [instruction-resolution]:   LookupInstruction 0 0 => .
     rule [instruction-resolution]:   LookupInstruction 1 0 => push
@@ -134,7 +195,7 @@ module KPIET
     
     //pop: Pops the top value off the stack and discards it.
     rule [instruction-pop]: <k> pop =>  .</k>
-                            <stack> ListItem(I) => . ... </stack>
+                            <stack> ... ListItem(_I) => .List  </stack>
 
     //add: Pops the top two values off the stack, adds them, and pushes the result back on the stack.
     rule [instruction-add]: <k> add =>  .</k>
@@ -157,12 +218,13 @@ module KPIET
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> //TODO: ignoring a div by zero rather than locking up
                             //TODO: make sure sign is the same as the divisor
     
+    //TODO: This line... why is it so messy? Why does it throw up errors for the most bizarre things? I can't name the variable I?
     //not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
-    rule [instruction-not]: <k> not =>  .</k>
-                            <stack> ListItem(I:Int) => ListItem(if (I ==Bool 0) then 1 else 0 fi) ... </stack> 
+    rule [instruction-not]: <k> not => .</k>
+                            <stack> ListItem(Item:Int) => ListItem(if (Item ==Bool 0) then 1 else 0 fi) ... </stack> 
 
     //greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
-    rule [instruction-greater]: <k> not =>  .</k>
+    rule [instruction-greater]: <k> great =>  .</k>
                             <stack>ListItem(I1:Int) ListItem(I2:Int) => ListItem(if (I2 > I1) then 1 else 0 fi) ... </stack> 
     //pointer: Pops the top value off the stack and rotates the DP clockwise that many steps (anticlockwise if negative).
     rule [instruction-pointer]: <k> ptr =>  .</k>
