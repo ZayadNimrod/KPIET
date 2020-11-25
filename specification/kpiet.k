@@ -21,8 +21,7 @@ module KPIET
         <output color="Orchid" stream = "stdout"> .List </output>
 
 
-        //<width> . </width> //used when building up <program>
-        //<height> . </height>
+        //used when building up <program>
         <buildingx>0</buildingx>
         <buildingy>0</buildingy>
     </T>
@@ -33,8 +32,6 @@ module KPIET
 
     syntax K ::= "point" "(" Int "," Int ")"
 
-
-    //syntax Program ::= Int ";" Int ";" Lines
     syntax Program ::= Lines
 
     syntax Lines ::= List{Line, ";"}
@@ -42,16 +39,8 @@ module KPIET
 
     syntax Pixel ::= Colour
 
-    //get the width and height of the program
-    //rule    <k>I1:Int ; I2:Int ; => . ...</k>       [structural]
-    //        <width> . => I1 </width>
-    //        <height> . => I2 </height>
-    
-
     //get next pixel, convert to colour, map to its location, go to next pixel
     rule H:Hexcode => TranslateHexcode H            [structural] 
-    
-
 
 
     //TODO Don't quite like how these rules were realised
@@ -66,18 +55,18 @@ module KPIET
         //<k> , => . ...</k>        
         <k>P:Pixel , L:Line => P ~> L</k>
         <buildingx> X:Int => X +Int 1 </buildingx>  [structural]
-    
-    // TODO get a pixel, move it into <program> mapped to <x>,<y>
 
-    rule[convert-pixel-to-colour]:
+    rule [convert-pixel-to-colour]:
         <k> H:Hexcode => TranslateHexcode H ... </k>
     //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
     rule [place-pixel-in-map]:
         <k> C:ColorIndex => . ...</k>
         <buildingx> X:Int </buildingx>
         <buildingy> Y:Int </buildingy>
-        <program> ... point(X,Y) |-> C</program>
-    
+        //TODO WHAT THE HELL WHY
+        ///Well... looks like we can't look up by point! We'll need to make a nested set of them I suppose. i.e xs whihc map an X to a list in ys, which map a Y to a colour
+        //<program> ... point(X,Y) |->  C ...</program>
+        <program> ... X |->  (Y|-> C) ...</program>
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
     syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
@@ -128,7 +117,7 @@ module KPIET
     rule [translate-hexcode-encountered-hexcode-black]:         TranslateHexcode x000000 => color ( black )
     rule [translate-hexcode-encountered-hexcode-white]:         TranslateHexcode xffffff => color ( white )    
     //cases of an unkown hex should be translated as white, according to spec
-    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _X:Id => color ( white )  
+    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _ => color ( white )  
     //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
     syntax KResult::= Int | ColorIndex
@@ -152,8 +141,8 @@ module KPIET
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
     rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
     //When a white pixel is involved in the transition, no instruction is exectuted
-    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _C:ColorIndex   => . //moving from white to another pixel results in NOP
-    rule [translate-instruction-to-white]:      TranslateInstruction _C:ColorIndex color(white)   => . //moving to  white from another pixel results in NOP
+    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => . //moving from white to another pixel results in NOP
+    rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => . //moving to  white from another pixel results in NOP
     //TODO: transitions involving black pixels
 
     //The difference between two lightnesses of the same lightness is zero
@@ -206,7 +195,7 @@ module KPIET
     
     //pop: Pops the top value off the stack and discards it.
     rule [instruction-pop]: <k> pop =>  .</k>
-                            <stack> ... ListItem(_I) => .List  </stack>
+                            <stack> ... ListItem(_) => .List  </stack>
 
     //add: Pops the top two values off the stack, adds them, and pushes the result back on the stack.
     rule [instruction-add]: <k> add =>  .</k>
@@ -276,7 +265,7 @@ module KPIET
     rule IntToChar(I:Int) => charString(((I:Int %Int 256) +Int 256) %Int 256) [structural]
 
     syntax K ::= "PrintChar" "(" S:String ")" [strict]
-    rule <k>PrintChar(S:String) => . ...</k> [structural]
+    rule <k>PrintChar (S:String) => . ...</k> [structural]
     <output> ... . => S</output>
 
 
