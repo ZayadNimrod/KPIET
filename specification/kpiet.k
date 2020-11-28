@@ -28,6 +28,7 @@ module KPIET
         //used when building up <program>
         <buildingx>0</buildingx>
         <buildingy>0</buildingy>
+        <nextLines> . </nextLines>
     </T>
 
     //####
@@ -39,7 +40,7 @@ module KPIET
     syntax KResult ::= Int | ColorIndex | Coord
     syntax Program ::= Lines
 
-    syntax Lines ::= Line //List{Line, "EOL"}
+    syntax Lines ::= List{Line, ";"}
     syntax Line ::= List{Pixel, ""} 
 
     syntax Pixel ::= Colour
@@ -48,38 +49,41 @@ module KPIET
     rule H:Hexcode => TranslateHexcode H 
 
  
-    //TODO Don't quite like how these rules were realised
-
-    /* 
     rule .Lines => .
     rule [parse-next-line]: 
-        //<k> ";" => . ... </k>     
-        <k>L:Line EOL Ls:Lines => L ~> Ls</k>                 
+        
+        //<k>L:Line EOL Ls:Lines => L ~> Ls</k>     
+        //<buildingx> _X:Int => 0 </buildingx>
+        //<buildingy> Y:Int => Y +Int 1 </buildingy>  
+
+
+        <k>L:Line ; Ls:Lines => L </k>   
+        <nextLines> . => Ls </nextLines>              
         <buildingx> _X:Int => 0 </buildingx>
         <buildingy> Y:Int => Y +Int 1 </buildingy>  
 
-*/
+
+
+    rule [parse-next-line-restore]:
+        <k> . => Ls </k> 
+        <nextLines> Ls:Lines => .</nextLines>   
+
+
+
     rule .Line => .
-    rule [parse-next-pixel]: ///TODO:why is this rule never taken?
+    rule [parse-next-pixel]: 
         //<k>"," => . ...</k>        
         <k>P:Colour  L:Line => P ~> L</k>
         <buildingx> X:Int => X +Int 1 </buildingx> 
 
-    //rule [convert-pixel-to-colour]: ///TODO:why is this rule never taken?
-    //    <k> H:Hexcode => TranslateHexcode H ... </k> 
-
 
 
     //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
-    //TODO: this is never triggered? Why?
     rule [place-pixel-in-map]:
-        <k> C:ColorIndex ~> L:Line => L ...</k>
+        <k> C:ColorIndex => . ...</k>
         <buildingx> X:Int </buildingx>
         <buildingy> Y:Int </buildingy>
-        //TODO WHAT THE HELL WHY
-        //Well... looks like we can't look up by point! We'll need to make a nested set of them I suppose. i.e xs whihc map an X to a list in ys, which map a Y to a colour
-        <program> ... .Map => point(X,Y) |->  C ...</program>
-        //<program> ... X |->  (Y|-> C) ...</program>
+         <program> ... .Map => point(X,Y) |->  C ...</program>
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
     syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
@@ -91,8 +95,6 @@ module KPIET
     syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
     syntax Lightness ::= "light" | "normal" | "dark" 
 
-    syntax BlackOrWhite ::= "black" | "white"
-    
     syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
                         "xffffc0"   | "xffff00" | "x00c000" | 
                         "xc0ffc0"   | "x00ff00" | "x00c000" | 
