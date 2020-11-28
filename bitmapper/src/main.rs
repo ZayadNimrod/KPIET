@@ -35,14 +35,14 @@ fn main() {
             let pixel = img.get_pixel(x, y);
             //decode the pixel to a hex
             if x != 0 {
-                write(&mut out, ",");
+                write(&mut out, " , ");
             }
             let rgb = pixel.to_rgb();
-            let hex = format!("{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[1]);
+            let hex = format!("x{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[1]);
             write(&mut out, &hex);
         }
 
-        write(&mut out, ";\n");
+        write(&mut out, " EOL\n");
     }
 
     println!("Image encoded, operation complete");

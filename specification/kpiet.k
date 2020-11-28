@@ -5,7 +5,7 @@ module KPIET
     //TODO: Hold on, what if we don't place black pixels in the <program> cell. Thus, if we look them up, we fail, and instead return blac. this laos means out of bounds pixels will be considred black, which will mimc the functionality edges have.
     configuration <T>        
     
-        <k> .K </k> //the current instruction we are working on
+        <k> $PGM:Program</k> //the current instruction we are working on
 
         <stack> .List </stack> //the stack of values the program works on
 
@@ -18,9 +18,12 @@ module KPIET
         <owner> .Map </owner> //maps position to the block that owns it
         <block> .Map </block> //stores a list of all the blocks that have been constructed so far. TODO: cache transitions
 
-        <input color="magenta" stream = "stdin"> .List </input>
-        <output color="Orchid" stream = "stdout"> .List </output>
+        //TODO:K doesn't like streams anymore
+        //<input color="magenta" stream = "stdin"> .List </input>
+        //<output color="Orchid" stream = "stdout"> .List </output>
 
+        <input color="magenta"> .List </input>
+        <output color="Orchid"> .List </output>
 
         //used when building up <program>
         <buildingx>0</buildingx>
@@ -31,47 +34,55 @@ module KPIET
     // RELATED TO PARSING PROGRAM INTO <program> CELL
     //####
 
-    syntax K ::= "point" "(" Int "," Int ")"
-
+    
+    syntax Coord ::= "point" "(" Int "," Int ")"
+    syntax KResult ::= Int | ColorIndex | Coord
     syntax Program ::= Lines
 
-    syntax Lines ::= List{Line, ";"}
-    syntax Line ::= List{Pixel, ","} 
+    syntax Lines ::= Line //List{Line, "EOL"}
+    syntax Line ::= List{Pixel, ""} 
 
     syntax Pixel ::= Colour
 
     //get next pixel, convert to colour, map to its location, go to next pixel
-    rule H:Hexcode => TranslateHexcode H            [structural] 
+    rule H:Hexcode => TranslateHexcode H 
 
-
+ 
     //TODO Don't quite like how these rules were realised
-    rule .Line => .
+
+    /* 
     rule .Lines => .
     rule [parse-next-line]: 
-        //<k> ; => . ... </k>     
-        <k>L:Line ; Ls:Lines => L ~> Ls</k>                 
+        //<k> ";" => . ... </k>     
+        <k>L:Line EOL Ls:Lines => L ~> Ls</k>                 
         <buildingx> _X:Int => 0 </buildingx>
-        <buildingy> Y:Int => Y +Int 1 </buildingy>  [structural]
-    rule [parse-next-pixel]:
-        //<k> , => . ...</k>        
-        <k>P:Pixel , L:Line => P ~> L</k>
-        <buildingx> X:Int => X +Int 1 </buildingx>  [structural]
+        <buildingy> Y:Int => Y +Int 1 </buildingy>  
 
-    rule [convert-pixel-to-colour]:
-        <k> H:Hexcode => TranslateHexcode H ... </k>
+*/
+    rule .Line => .
+    rule [parse-next-pixel]: ///TODO:why is this rule never taken?
+        //<k>"," => . ...</k>        
+        <k>P:Colour  L:Line => P ~> L</k>
+        <buildingx> X:Int => X +Int 1 </buildingx> 
+
+    //rule [convert-pixel-to-colour]: ///TODO:why is this rule never taken?
+    //    <k> H:Hexcode => TranslateHexcode H ... </k> 
+
+
+
     //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
+    //TODO: this is never triggered? Why?
     rule [place-pixel-in-map]:
-        <k> C:ColorIndex => . ...</k>
+        <k> C:ColorIndex ~> L:Line => L ...</k>
         <buildingx> X:Int </buildingx>
         <buildingy> Y:Int </buildingy>
         //TODO WHAT THE HELL WHY
-        ///Well... looks like we can't look up by point! We'll need to make a nested set of them I suppose. i.e xs whihc map an X to a list in ys, which map a Y to a colour
-        //<program> ... point(X,Y) |->  C ...</program>
-        <program> ... X |->  (Y|-> C) ...</program>
+        //Well... looks like we can't look up by point! We'll need to make a nested set of them I suppose. i.e xs whihc map an X to a list in ys, which map a Y to a colour
+        <program> ... .Map => point(X,Y) |->  C ...</program>
+        //<program> ... X |->  (Y|-> C) ...</program>
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
     syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
-
 
 
 
@@ -88,7 +99,9 @@ module KPIET
                         "xc0ffff"   | "x00ffff" | "x00c0c0" |
                         "xc0c0ff"   | "x0000ff" | "x0000c0" |
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
-                        "x000000"   | "xffffff" | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
+                        "x000000"   | "xffffff" | "x0000000" | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
+
+
                         
     //####
     // RELATED TO VIRTUAL MACHINE
@@ -118,7 +131,7 @@ module KPIET
     rule [translate-hexcode-encountered-hexcode-black]:         TranslateHexcode x000000 => color ( black )
     rule [translate-hexcode-encountered-hexcode-white]:         TranslateHexcode xffffff => color ( white )    
     //cases of an unkown hex should be translated as white, according to spec
-    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _ => color ( white )  
+    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
     //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
     syntax KResult::= Int | ColorIndex
@@ -137,6 +150,10 @@ module KPIET
                     |   HueDifferenceCall
     syntax LightnessDifferenceCall ::= "LightnessDifference" Lightness Lightness
     syntax HueDifferenceCall ::= "HueDifference" Hue Hue
+
+
+
+    /*
 
     // Get the instruction that a transition between two colours maps to
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
@@ -296,5 +313,5 @@ module KPIET
                             <output> ... .List => ListItem(S)</output> [structural]
 
 
-	
+	 */
 endmodule
