@@ -37,7 +37,7 @@ module KPIET
 
     
     syntax Coord ::= "point" "(" Int "," Int ")"
-    syntax KResult ::= Int | ColorIndex | Coord
+    syntax KResult ::= Int | ColorIndex | Coord | Instruction
     syntax Program ::= Lines
 
     syntax Lines ::= List{Line, ";"}
@@ -71,8 +71,7 @@ module KPIET
 
 
     rule .Line => .
-    rule [parse-next-pixel]: 
-        //<k>"," => . ...</k>        
+    rule [parse-next-pixel]:      
         <k>P:Colour  L:Line => P ~> L</k>
         <buildingx> X:Int => X +Int 1 </buildingx> 
 
@@ -148,14 +147,11 @@ module KPIET
                         | "LookupInstruction" Int Int [strict]
 
 
-    syntax Int ::=      LightnessDifferenceCall 
-                    |   HueDifferenceCall
-    syntax LightnessDifferenceCall ::= "LightnessDifference" Lightness Lightness
-    syntax HueDifferenceCall ::= "HueDifference" Hue Hue
+    syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
+                    |   "HueDifference" Hue Hue [function, functional]
+  
 
-
-
-    /*
+    
 
     // Get the instruction that a transition between two colours maps to
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
@@ -163,16 +159,19 @@ module KPIET
     //When a white pixel is involved in the transition, no instruction is exectuted
     rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => . //moving from white to another pixel results in NOP
     rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => . //moving to  white from another pixel results in NOP
-    //TODO: transitions involving black pixels
+    rule [translate-instruction-from-black]:    TranslateInstruction color(black) _   => . //TODO full effects
+    rule [translate-instruction-to-black]:      TranslateInstruction _ color(black)   => . //TODO full effects
 
     //The difference between two lightnesses of the same lightness is zero
     rule [lightness-difference-base-light]:         LightnessDifference light   light   => 0
     rule [lightness-difference-base-normal]:        LightnessDifference normal  normal  => 0
     rule [lightness-difference-base-dark]:          LightnessDifference dark    dark    => 0
-    //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
-    rule [lightness-difference-inductive-light]:    LightnessDifference L       normal  => LightnessDifference L light +Int 1
-    rule [lightness-difference-inductive-normal]:   LightnessDifference L       dark    => LightnessDifference L normal +Int 1
-    rule [lightness-difference-inductive-dark]:     LightnessDifference L       light   => LightnessDifference L dark +Int 1
+
+   //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
+    rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1
+    rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1
+    rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1
+
 
     //The difference in hues of the same hues is zero
     rule [hue-difference-base-red]:             HueDifference       red     red     => 0
@@ -181,13 +180,15 @@ module KPIET
     rule [hue-difference-base-cyan]:            HueDifference       cyan    cyan    => 0
     rule [hue-difference-base-blue]:            HueDifference       blue    blue    => 0
     rule [hue-difference-base-magenta]:         HueDifference       magenta magenta => 0
+ 
+    
     //If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
-    rule [hue-difference-inductive-yellow]:     HueDifference       H       yellow  => HueDifference H red      +Int 1
-    rule [hue-difference-inductive-green]:      HueDifference       H       green   => HueDifference H yellow   +Int 1
-    rule [hue-difference-inductive-cyan]:       HueDifference       H       cyan    => HueDifference H green    +Int 1
-    rule [hue-difference-inductive-blue]:       HueDifference       H       blue    => HueDifference H cyan     +Int 1
-    rule [hue-difference-inductive-magenta]:    HueDifference       H       magenta => HueDifference H blue     +Int 1
-    rule [hue-difference-inductive-red]:        HueDifference       H       red     => HueDifference H magenta  +Int 1
+    rule [hue-difference-inductive-yellow]:     HueDifference       H:Hue       yellow  => HueDifference H red      +Int 1
+    rule [hue-difference-inductive-green]:      HueDifference       H:Hue       green   => HueDifference H yellow   +Int 1
+    rule [hue-difference-inductive-cyan]:       HueDifference       H:Hue       cyan    => HueDifference H green    +Int 1
+    rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1
+    rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1
+    rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1
 
 
     
@@ -209,7 +210,7 @@ module KPIET
     rule [instruction-resolution-in(char)]: LookupInstruction 0 4 => inchar
     rule [instruction-resolution-out(num)]: LookupInstruction 1 4 => outnum
     rule [instruction-resolution-out(char)]:LookupInstruction 2 4 => outchar
-
+ 
     //push: Pushes the value (size) of the colour block just exited on to the stack. Note that values of colour blocks are not automatically pushed on to the stack - this push operation must be explicitly carried out.
     rule [instruction-push]: <k> push => . </k>  //TODO get the size of the current block
     
@@ -315,5 +316,5 @@ module KPIET
                             <output> ... .List => ListItem(S)</output> [structural]
 
 
-	 */
+	
 endmodule
