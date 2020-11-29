@@ -38,7 +38,7 @@ fn main() {
                 write(&mut out, " ");
             }
             let rgb = pixel.to_rgb();
-            let hex = format!("x{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[1]);
+            let hex = format!("x{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]);
             write(&mut out, &hex);
         }
 
