@@ -2,21 +2,22 @@ module KPIET
     imports DOMAINS-SYNTAX
     imports DOMAINS
     
-    //TODO: Hold on, what if we don't place black pixels in the <program> cell. Thus, if we look them up, we fail, and instead return blac. this laos means out of bounds pixels will be considred black, which will mimc the functionality edges have.
     configuration <T>        
     
         <k> $PGM:Program</k> //the current instruction we are working on
 
         <stack> .List </stack> //the stack of values the program works on
 
-        <DP>0</DP> //direction pointer; 0 - right, 1 - down, 2 - left, 3- up
-        <CC>0</CC> //"codel chooser"; 0-right,1-left
+        <DP>DP (>)</DP> 
+        <CC>CC (>)</CC> 
         <PP> point(0,0) </PP> //program pointer, points to current pixel
+        <exitedPP> point(0,0)</exitedPP>
 
 
         <program> .Map </program> //maps position to colour of the pixel there
         <owner> .Map </owner> //maps position to the block that owns it
         <block> .Map </block> //stores a list of all the blocks that have been constructed so far. TODO: cache transitions
+
 
         //TODO:K doesn't like streams anymore
         //<input color="magenta" stream = "stdin"> .List </input>
@@ -29,6 +30,12 @@ module KPIET
         <buildingx>0</buildingx>
         <buildingy>0</buildingy>
         <nextLines> . </nextLines>
+
+
+        //used when building items in <block>
+        <blockworkspace> .List </blockworkspace>
+        <nextBlockID> 0 </nextBlockID>
+        
     </T>
 
     //####
@@ -37,7 +44,7 @@ module KPIET
 
     
     syntax Coord ::= "point" "(" Int "," Int ")"
-    syntax KResult ::= Int | ColorIndex | Coord | Instruction
+    syntax KResult ::= Int | ColorIndex | Coord | Instruction | Bool
     syntax Program ::= Lines
 
     syntax Lines ::= List{Line, ";"}
@@ -45,32 +52,31 @@ module KPIET
 
     syntax Pixel ::= Colour
 
+
+   
     //get next pixel, convert to colour, map to its location, go to next pixel
     rule H:Hexcode => TranslateHexcode H 
 
- 
-    rule .Lines => .
+    
+    
+    rule [finished-parsing]:
+        <k>.Lines => step </k>
+        //<program> point( 0 , 0 ) |-> C </program>
+
+
+
     rule [parse-next-line]: 
-        
-        //<k>L:Line EOL Ls:Lines => L ~> Ls</k>     
-        //<buildingx> _X:Int => 0 </buildingx>
-        //<buildingy> Y:Int => Y +Int 1 </buildingy>  
-
-
         <k>L:Line ; Ls:Lines => L </k>   
         <nextLines> . => Ls </nextLines>              
         <buildingx> _X:Int => 0 </buildingx>
-        <buildingy> Y:Int => Y +Int 1 </buildingy>  
+        <buildingy> Y:Int => Y +Int 1 </buildingy> 
 
 
 
     rule [parse-next-line-restore]:
-        <k> . => Ls </k> 
-        <nextLines> Ls:Lines => .</nextLines>   
+        <k> .Line => Ls </k> 
+        <nextLines> Ls:Lines => .</nextLines>  
 
-
-
-    rule .Line => .
     rule [parse-next-pixel]:      
         <k>P:Colour  L:Line => P ~> L</k>
         <buildingx> X:Int => X +Int 1 </buildingx> 
@@ -82,7 +88,106 @@ module KPIET
         <k> C:ColorIndex => . ...</k>
         <buildingx> X:Int </buildingx>
         <buildingy> Y:Int </buildingy>
-         <program> ... .Map => point(X,Y) |->  C ...</program>
+        <program> ... .Map => point(X,Y) |->  C ...</program>
+
+
+    
+
+    // ####
+    // PATHING
+    // ####
+    //TODO: Go into VM, change empty transitions to transitions to "step"
+    
+    //TODO: black border cells?
+    syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
+    syntax K ::= "step" 
+
+
+  
+    syntax BlockDef ::= "block" "(" Colour "," Int ","  "(" Map ")" ")"
+    syntax DirectionPointer ::= "DP" "(" "^" ")" |"DP" "(" "v" ")" |"DP" "(" "<" ")"|"DP" "(" ">" ")"
+    syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
+
+    // Summary of a step
+    // We begin: PP at location, <currentColour> holds colour of the current block, DP/CC in some configuration
+    // Find item in <block> mapped to <PP>. Look up with DP/CC where the PP is next. Update <PP> to this position., and <exitedPP> to the old <PP>
+    //      If this mapping does not exist in <block>, create the block!
+    // Take the colour at the new <PP>, run TranslateInstruction on it and <currentColour>, 
+    // if <k> is step, do again
+
+    rule [next-step-mapping-exists]:
+        <k> step => TranslateInstruction OldColour NewColour... </k>
+        <PP> OldPP:Coord => NewPP </PP> 
+        <exitedPP> _ => OldPP </exitedPP>
+        <program> ... NewPP |-> NewColour:Colour ...</program>       
+        <owner> ... OldPP |-> OldBlockID:Int ... </owner>
+        <block> ... OldBlockID |-> block( OldColour:Colour, Size:Int, ( direction(D,C)|-> NewPP:Coord _ ) ) ...</block>
+        <DP>D:DirectionPointer</DP>
+        <CC>C:CodelChooser</CC>
+        <blockworkspace> .List </blockworkspace>
+
+    rule [next-step-no-mapping]:
+        <k> step => makeBlock(OldPP , BlockID) build(BlockID) step ...</k>
+        <PP> OldPP:Coord </PP>
+        <program> ... OldPP |-> OldColour:Colour ...</program>  
+        <owner> M:Map </owner>
+        <block>... .Map => BlockID |-> block(OldColour, 0, ( 
+        direction(DP(>), CC(>))|->OldPP ,direction(DP(>), CC(<))|->OldPP, 
+        direction(DP(v), CC(>))|->OldPP ,direction(DP(v), CC(<))|->OldPP),
+        direction(DP(<), CC(>))|->OldPP ,direction(DP(<), CC(<))|->OldPP,
+        direction(DP(^), CC(>))|->OldPP ,direction(DP(^), CC(<))|->OldPP)        
+         </block> 
+        <nextBlockID> BlockID:Int => BlockID +Int 1 <nextBlockID>
+        //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
+        requires notBool(hasMapping(M, OldPP))
+
+    
+    //rule [next-step-build-block]:
+    //    <k> step ...</k>
+    //    <blocks>... .Map => BlockID |-> block(OldColour, 0, (.Map)) </blocks>
+    //    <nextBlockID> BlockID</nextBlockID>
+    //    <blockworkspace> ListItem(position (X:Int, Y:Int))=> .List ... </blockworkspace> //TODO: update destination PPs
+
+    rule [build-block]:
+        <k> makeBlock (position(X:Int, Y:Int ), BlockID :Int) =>
+                makeBlock (position(X +Int 1, Y),BlockID)
+                makeBlock (position(X, Y +Int 1),BlockID)                
+                makeBlock (position(X, Y -Int 1),BlockID)
+                makeBlock (position(X -Int 1, Y),BlockID)    
+         ...</k>
+        <program> ... CenterPosition |-> MainColour:Colour ...  </program>
+        <program> .. position(X,Y) |-> OtherColour:Colour ... </program>
+        <owner> ... .Map => position(X,Y)|->BlockID </owner>
+        <program> Program:Map </program>
+        <owner> Owner:Map </owner>
+        <PP> CenterPosition:Coord </PP>
+        <blockworkspace> ... .List => position(X,Y) </blockworkspace>
+        requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
+            andBool notBool (hasMapping(Owner, position(X,Y))) // the current position is not already mapped
+            andBool hasMapping(Program,position(X,Y))// The current position is in bounds
+
+
+    rule [build-block-wrong-pixel]:
+        <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
+        <program> ... CenterPosition |-> MainColour:Colour ... Position |-> OtherColour:Colour ... </program>
+        <program> Program:Map </program>
+        <owner> Owner:Map </owner>
+        <PP> CenterPosition : Coord </PP>
+        //<blockworkspace> ... .List -> Position </blockworkspace> Don't add this to the workspace
+        //<nextBlockID> BlockID </nextBlockID>
+        requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
+            orBool (hasMapping(Owner, Position)) // the current position is not already mapped
+            orBool hasMapping(Program,Position))// The current position is out of bounds
+
+
+    //<blockworkspace> contains all the pixels in the current block we are building. 
+    //So we should deplete thet cell until it is empty, to create the block
+    rule [build-block-finish-up]: 
+        <k> build (BlockID:Int)  </k>
+        <block> ... BlockID |-> block(C:Colour , Size:Int , ( ... )) ...</block>
+        <blockworkspace>ListItem(position(X:Int,Y:Int)) ... </blockworkspace>
+
+
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
     syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
@@ -100,9 +205,20 @@ module KPIET
                         "xc0ffff"   | "x00ffff" | "x00c0c0" |
                         "xc0c0ff"   | "x0000ff" | "x0000c0" |
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
-                        "x000000"   | "xffffff" | "x0000000" | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
+                        "x000000"   | "xffffff"  | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
 
 
+
+    syntax Bool ::= ColorIndex "==Colour" ColorIndex
+    rule color(black) ==Colour color(white) => false
+    rule color(white) ==Colour color(black) => false
+    rule color(black) ==Colour color(black) => true
+    rule color(white) ==Colour color(white) => true
+    rule color(black) ==Colour color(_:Lightness _:Hue) => false
+    rule color(white) ==Colour color(_:Lightness _:Hue) => false
+    rule color(_:Lightness _:Hue) ==Colour color(black) => false
+    rule color(_:Lightness _:Hue) ==Colour color(white) => false
+    rule color(L1:Lightness H1:Hue) ==Colour color(L2:Lightness H2:Hue) => LightnessDifference L1 L2 ==Int 0 andBool HueDifference H1 H2 ==Int 0
                         
     //####
     // RELATED TO VIRTUAL MACHINE
@@ -264,16 +380,41 @@ module KPIET
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
                             when notBool(Top >Int Bottom)
 
+
     //pointer: Pops the top value off the stack and rotates the DP clockwise that many steps (anticlockwise if negative).
-    rule [instruction-pointer]: 
-                            <k> ptr =>  .</k>
-                            <stack>ListItem(Steps:Int) => .List ... </stack> 
-                            <DP>D:Int => ((D +Int Steps)%Int 4)</DP>           
+    rule [instruction-pointer]:
+                            <k> ptr =>  rotdp(abs(Steps)) ...</k>
+                            <stack>ListItem(Steps:Int) => .List ... </stack>        
+
+        syntax K::= "rotdp" "(" Int ")" [strict]
+
+        rule    <k>rotdp(0) => . ...</k>
+        rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
+                <DP>DP(>) => DP(v)</DP>
+                requires notBool (X ==Int 0)
+        rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
+                <DP>DP(v) => DP(<)</DP>
+                requires notBool (X ==Int 0)
+        rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
+                <DP>DP(<) => DP(^)</DP>
+                requires notBool (X ==Int 0)
+        rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
+                <DP>DP(^) => DP(>)</DP>
+                requires notBool (X ==Int 0)
     //switch: Pops the top value off the stack and toggles the CC that many times (the absolute value of that many times if negative).
     rule [instruction-switch]: 
-                            <k> switch =>  .</k>
-                            <stack>ListItem(Step:Int) => .List ... </stack> 
-                            <CC>C:Int => ((C +Int Step)%Int 2)</CC> //TODO make sure we use absolute value of I
+                            <k> switch =>  rotcc(abs(C)) ...</k>
+                            <stack>ListItem(C:Int) => .List ... </stack> 
+
+
+        syntax K::= "rotcc" "(" Int ")" [strict]
+        rule    <k>rotcc(0) => . ...</k>
+        rule    <k>rotcc(X:Int) => rotcc(X -Int 1) ...</k>
+                <CC>CC(>) => CC(<)</CC>
+                requires notBool (X ==Int 0)
+        rule    <k>rotcc(X:Int) => rotcc(X -Int 1) ...</k>
+                <CC>CC(<) => CC(>)</CC>
+                requires notBool (X ==Int 0)
     //duplicate: Pushes a copy of the top value on the stack on to the stack.
     rule [instruction-duplicate]: 
                             <k> dup => .</k>
@@ -317,4 +458,8 @@ module KPIET
 
 
 	
+
+    syntax Int ::= "abs" "("Int")"[strict]
+    rule abs(X:Int) => X:Int requires X >Int 0
+    rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0) 
 endmodule
