@@ -179,12 +179,12 @@ module KPIET
         //<program> ... Position |-> OtherColour:Colour ... </program>
         <program> Program:Map </program>
         //<owner>  ... Position |-> _ ... </owner> 
-        <PP> CenterPosition : Coord </PP>
+        <PP> CenterPosition:Coord </PP>
         //<blockworkspace> ... .List -> Position </blockworkspace> Don't add this to the workspace
         //<nextBlockID> BlockID </nextBlockID>
         requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
-            orBool hasMapping(Owner, Position) // the current position is already mapped
-            orBool notBool (hasMapping(Program,Position)))// The current position is out of bounds
+            orBool Position in_keys(Owner) // the current position is already mapped
+            orBool notBool (Position in_keys(Program))// The current position is out of bounds
 
 
     //<blockworkspace> contains all the pixels in the current block we are building. 
