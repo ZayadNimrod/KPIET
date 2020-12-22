@@ -178,6 +178,7 @@ module KPIET
     rule [build-block-wrong-pixel-out-bounds]:
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
         <program> Program:Map </program>
+        <owner> Owner:Map </owner>
         <PP> CenterPosition:Coord </PP>
         requires Position in_keys(Owner) // the current position is already mapped
             orBool notBool (Position in_keys(Program))// The current position is out of bounds
