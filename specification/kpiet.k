@@ -148,12 +148,6 @@ module KPIET
         //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
         requires notBool(OldPP in_keys (M))
 
-    
-    //rule [next-step-build-block]:
-    //    <k> step ...</k>
-    //    <blocks>... .Map => BlockID |-> block(OldColour, 0, (.Map)) </blocks>
-    //    <nextBlockID> BlockID</nextBlockID>
-    //    <blockworkspace> ListItem(position (X:Int, Y:Int))=> .List ... </blockworkspace> //TODO: update destination PPs
 
     rule [build-block]:
         <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
@@ -172,29 +166,32 @@ module KPIET
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
-
-    rule [build-block-wrong-pixel]://TODO thsi one is kinda fucked rn with regard to the conditions.
+    //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
+    rule [build-block-wrong-pixel-wrong-colour]:
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
         <program> ... CenterPosition |-> MainColour:Colour ... </program>
-        //<program> ... Position |-> OtherColour:Colour ... </program>
-        <program> Program:Map </program>
-        //<owner>  ... Position |-> _ ... </owner> 
+        <program> ... Position |-> OtherColour:Colour ... </program>
         <PP> CenterPosition:Coord </PP>
-        //<blockworkspace> ... .List -> Position </blockworkspace> Don't add this to the workspace
-        //<nextBlockID> BlockID </nextBlockID>
         requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
-            orBool Position in_keys(Owner) // the current position is already mapped
+          
+
+    rule [build-block-wrong-pixel-out-bounds]:
+        <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
+        <program> Program:Map </program>
+        <PP> CenterPosition:Coord </PP>
+        requires Position in_keys(Owner) // the current position is already mapped
             orBool notBool (Position in_keys(Program))// The current position is out of bounds
 
 
     //<blockworkspace> contains all the pixels in the current block we are building. 
     //So we should deplete thet cell until it is empty, to create the block
-    rule [build-block-finish-up]: 
+    rule [build-block-finish-up-rightright]: 
         <k> build (BlockID:Int)  </k>
-        <block> ... BlockID |-> block(C:Colour , Size:Int , ( ... )) ...</block>
-        <blockworkspace>ListItem(point(X:Int,Y:Int)) ... </blockworkspace>//TODO this is where you left off
-
-
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (X1 >Int X2) 
+            orBool (X1 ==Int X2 andBool Y1 <=Int Y2)  //The new point is the new right-bottom pixel in the block
+        //TODO this is where you left off
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
 
