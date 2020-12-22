@@ -122,7 +122,7 @@ module KPIET
         <exitedPP> _ => OldPP </exitedPP>
         <program> ... NewPP |-> NewColour:Colour ...</program>       
         <owner> ... OldPP |-> OldBlockID:Int ... </owner>
-        <block> ... OldBlockID |-> block( OldColour:Colour, Size:Int, ( direction(D,C)|-> NewPP:Coord _ ) ) ...</block>
+        <block> ... OldBlockID |-> block( OldColour:Colour, _Size:Int, ( direction(D,C)|-> NewPP:Coord _ ) ) ...</block>
         <DP>D:DirectionPointer</DP>
         <CC>C:CodelChooser</CC>
         <blockworkspace> .List </blockworkspace>
@@ -156,30 +156,27 @@ module KPIET
                 makeBlock (point(X, Y -Int 1),BlockID) ~>
                 makeBlock (point(X -Int 1, Y),BlockID)    
          ...</k>
-        <program> ... CenterPosition |-> MainColour:Colour ...  </program>
         <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
-        <owner> ... .Map => point(X,Y)|->BlockID </owner>
-        <program> Program:Map </program>
+        <owner> ... .Map => point(X,Y)|->BlockID ...</owner>  // the current position is not already mapped (now map it)? TODO not sure if this works...
         <owner> Owner:Map </owner>
-        <PP> CenterPosition:Coord </PP>
+        <block> ... BlockID |-> block(MainColour:Colour, _ , (_)) ... </block>
         <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
     //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
-    rule [build-block-wrong-pixel-wrong-colour]:
+    rule [build-block-wrong-pixel-wrong-colour]: 
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
-        <program> ... CenterPosition |-> MainColour:Colour ... </program>
         <program> ... Position |-> OtherColour:Colour ... </program>
-        <PP> CenterPosition:Coord </PP>
+        <block>... BlockID |-> block(MainColour:Colour, _ , (_))...</block>
         requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
           
 
     rule [build-block-wrong-pixel-out-bounds]:
-        <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
+        <k> makeBlock (Position:Coord, _BlockID:Int) => . ...</k>
         <program> Program:Map </program>
         <owner> Owner:Map </owner>
-        <PP> CenterPosition:Coord </PP>
+        //<PP> CenterPosition:Coord </PP>
         requires Position in_keys(Owner) // the current position is already mapped
             orBool notBool (Position in_keys(Program))// The current position is out of bounds
 
@@ -191,7 +188,7 @@ module KPIET
         <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X1,Y1) ))) ...</block>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X1 >Int X2) 
-            orBool (X1 ==Int X2 andBool Y1 <=Int Y2)  //The new point is the new right-bottom pixel in the block
+            orBool (X1 ==Int X2 andBool Y1 <=Int Y2 andBool (notBool(Y1 ==Int Y2)))  //The new point is the new right-bottom pixel in the block
         //TODO this is where you left off
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
@@ -214,7 +211,7 @@ module KPIET
 
 
 
-    syntax Bool ::= Colour "==Colour" Colour 
+    syntax Bool ::= Colour "==Colour" Colour [strict]
     rule color(black) ==Colour color(white) => false
     rule color(white) ==Colour color(black) => false
     rule color(black) ==Colour color(black) => true
