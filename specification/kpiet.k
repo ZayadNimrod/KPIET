@@ -44,13 +44,13 @@ module KPIET
 
     
     syntax Coord ::= "point" "(" Int "," Int ")"
-    syntax KResult ::= Int | ColorIndex | Coord | Instruction | Bool
+    syntax KResult ::= Int | Colour | Coord | Instruction | Bool
     syntax Program ::= Lines
 
     syntax Lines ::= List{Line, ";"}
     syntax Line ::= List{Pixel, ""} 
 
-    syntax Pixel ::= Colour
+    syntax Pixel ::= Colour | Hexcode
 
 
    
@@ -85,7 +85,7 @@ module KPIET
 
     //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
     rule [place-pixel-in-map]:
-        <k> C:ColorIndex => . ...</k>
+        <k> C:Colour => . ...</k>
         <buildingx> X:Int </buildingx>
         <buildingy> Y:Int </buildingy>
         <program> ... .Map => point(X,Y) |->  C ...</program>
@@ -100,8 +100,9 @@ module KPIET
     
     //TODO: black border cells?
     syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
-    syntax K ::= "step" 
+    syntax K ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
 
+    //syntax K ::= "{" .List "}"
 
   
     syntax BlockDef ::= "block" "(" Colour "," Int ","  "(" Map ")" ")"
@@ -127,19 +128,25 @@ module KPIET
         <blockworkspace> .List </blockworkspace>
 
     rule [next-step-no-mapping]:
-        <k> step => makeBlock(OldPP , BlockID) build(BlockID) step ...</k>
+        <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID) ~> step ...</k>
         <PP> OldPP:Coord </PP>
         <program> ... OldPP |-> OldColour:Colour ...</program>  
         <owner> M:Map </owner>
-        <block>... .Map => BlockID |-> block(OldColour, 0, ( 
-        direction(DP(>), CC(>))|->OldPP ,direction(DP(>), CC(<))|->OldPP, 
-        direction(DP(v), CC(>))|->OldPP ,direction(DP(v), CC(<))|->OldPP),
-        direction(DP(<), CC(>))|->OldPP ,direction(DP(<), CC(<))|->OldPP,
-        direction(DP(^), CC(>))|->OldPP ,direction(DP(^), CC(<))|->OldPP)        
-         </block> 
-        <nextBlockID> BlockID:Int => BlockID +Int 1 <nextBlockID>
+        <block>... 
+        .Map => BlockID |-> block(OldColour, 0, ( 
+            direction(DP(>), CC(>)) |-> OldPP 
+            direction(DP(>), CC(<)) |-> OldPP 
+            direction(DP(v), CC(>)) |-> OldPP 
+            direction(DP(v), CC(<)) |-> OldPP
+            direction(DP(<), CC(>)) |-> OldPP 
+            direction(DP(<), CC(<)) |-> OldPP
+            direction(DP(^), CC(>)) |-> OldPP 
+            direction(DP(^), CC(<)) |-> OldPP
+        ))     
+        </block> 
+        <nextBlockID> BlockID:Int => BlockID +Int 1 </nextBlockID>
         //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
-        requires notBool(hasMapping(M, OldPP))
+        requires notBool(OldPP in_keys (M))
 
     
     //rule [next-step-build-block]:
@@ -149,35 +156,35 @@ module KPIET
     //    <blockworkspace> ListItem(position (X:Int, Y:Int))=> .List ... </blockworkspace> //TODO: update destination PPs
 
     rule [build-block]:
-        <k> makeBlock (position(X:Int, Y:Int ), BlockID :Int) =>
-                makeBlock (position(X +Int 1, Y),BlockID)
-                makeBlock (position(X, Y +Int 1),BlockID)                
-                makeBlock (position(X, Y -Int 1),BlockID)
-                makeBlock (position(X -Int 1, Y),BlockID)    
+        <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
+                makeBlock (point(X +Int 1, Y),BlockID) ~>
+                makeBlock (point(X, Y +Int 1),BlockID) ~>             
+                makeBlock (point(X, Y -Int 1),BlockID) ~>
+                makeBlock (point(X -Int 1, Y),BlockID)    
          ...</k>
         <program> ... CenterPosition |-> MainColour:Colour ...  </program>
-        <program> .. position(X,Y) |-> OtherColour:Colour ... </program>
-        <owner> ... .Map => position(X,Y)|->BlockID </owner>
+        <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
+        <owner> ... .Map => point(X,Y)|->BlockID </owner>
         <program> Program:Map </program>
         <owner> Owner:Map </owner>
         <PP> CenterPosition:Coord </PP>
-        <blockworkspace> ... .List => position(X,Y) </blockworkspace>
+        <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
-            andBool notBool (hasMapping(Owner, position(X,Y))) // the current position is not already mapped
-            andBool hasMapping(Program,position(X,Y))// The current position is in bounds
+            andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
 
-    rule [build-block-wrong-pixel]:
+    rule [build-block-wrong-pixel]://TODO thsi one is kinda fucked rn with regard to the conditions.
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
-        <program> ... CenterPosition |-> MainColour:Colour ... Position |-> OtherColour:Colour ... </program>
+        <program> ... CenterPosition |-> MainColour:Colour ... </program>
+        //<program> ... Position |-> OtherColour:Colour ... </program>
         <program> Program:Map </program>
-        <owner> Owner:Map </owner>
+        //<owner>  ... Position |-> _ ... </owner> 
         <PP> CenterPosition : Coord </PP>
         //<blockworkspace> ... .List -> Position </blockworkspace> Don't add this to the workspace
         //<nextBlockID> BlockID </nextBlockID>
         requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
-            orBool (hasMapping(Owner, Position)) // the current position is not already mapped
-            orBool hasMapping(Program,Position))// The current position is out of bounds
+            orBool hasMapping(Owner, Position) // the current position is already mapped
+            orBool notBool (hasMapping(Program,Position)))// The current position is out of bounds
 
 
     //<blockworkspace> contains all the pixels in the current block we are building. 
@@ -185,17 +192,17 @@ module KPIET
     rule [build-block-finish-up]: 
         <k> build (BlockID:Int)  </k>
         <block> ... BlockID |-> block(C:Colour , Size:Int , ( ... )) ...</block>
-        <blockworkspace>ListItem(position(X:Int,Y:Int)) ... </blockworkspace>
+        <blockworkspace>ListItem(point(X:Int,Y:Int)) ... </blockworkspace>//TODO this is where you left off
 
 
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
-    syntax Colour ::= ColorIndex | Hexcode | "TranslateHexcode" Colour 
 
+    syntax Colour ::= "TranslateHexcode" Hexcode
 
 
     //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
-    syntax ColorIndex ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")"
+    syntax Colour ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")" 
     syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
     syntax Lightness ::= "light" | "normal" | "dark" 
 
@@ -209,7 +216,7 @@ module KPIET
 
 
 
-    syntax Bool ::= ColorIndex "==Colour" ColorIndex
+    syntax Bool ::= Colour "==Colour" Colour 
     rule color(black) ==Colour color(white) => false
     rule color(white) ==Colour color(black) => false
     rule color(black) ==Colour color(black) => true
@@ -223,8 +230,8 @@ module KPIET
     //####
     // RELATED TO VIRTUAL MACHINE
     //####
-    rule [translate-hexcode-no-repeat]: TranslateHexcode TranslateHexcode  C:Colour => TranslateHexcode C
-    rule [translate-hexcode-encountered-index]:   TranslateHexcode C:ColorIndex  => C
+    //rule [translate-hexcode-no-repeat]: TranslateHexcode TranslateHexcode  => TranslateHexcode 
+    //rule [translate-hexcode-encountered-index]:   TranslateHexcode C:Colour  => C
 
     rule [translate-hexcode-encountered-hexcode-light-red]:     TranslateHexcode xffc0c0 => color ( light red )
     rule [translate-hexcode-encountered-hexcode-normal-red]:    TranslateHexcode xff0000 => color ( normal red )
@@ -251,7 +258,7 @@ module KPIET
     rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
     //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
-    syntax KResult::= Int | ColorIndex
+    syntax KResult::= Int | Colour
     syntax Instruction ::=          "push"  |   "pop"   |
                         "add"   |   "sub"   |   "mult"  |
                         "div"   |   "mod"   |   "not"   |
