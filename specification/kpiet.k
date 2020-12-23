@@ -127,8 +127,11 @@ module KPIET
         <CC>C:CodelChooser</CC>
         <blockworkspace> .List </blockworkspace>
 
+
+    //TODO multiple ~> arrows doesn't seem to quite work, so we made the second `step` appear after finishing `build` (rule for that appears later)
     rule [next-step-no-mapping]:
-        <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID) ~> step ...</k>
+        //<k> step => makeBlock(OldPP , BlockID) ~> build(BlockID)  ~> step... </k>
+        <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID) ... </k>
         <PP> OldPP:Coord </PP>
         <program> ... OldPP |-> OldColour:Colour ...</program>  
         <owner> M:Map </owner>
@@ -148,7 +151,7 @@ module KPIET
         //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
         requires notBool(OldPP in_keys (M))
 
-
+    //spews LLVM
     rule [build-block]:
         <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
                 makeBlock (point(X +Int 1, Y),BlockID) ~>
@@ -157,13 +160,16 @@ module KPIET
                 makeBlock (point(X -Int 1, Y),BlockID)    
          ...</k>
         <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
-        <owner> ... .Map => point(X,Y)|->BlockID ...</owner>  // the current position is not already mapped (now map it)? TODO not sure if this works...
+        //TODO uncomment this
+        //<owner> ... .Map => point(X,Y)|->BlockID ...</owner>  // the current position is not already mapped (now map it)? TODO not sure if this works...
         <owner> Owner:Map </owner>
         <block> ... BlockID |-> block(MainColour:Colour, _ , (_)) ... </block>
         <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
+
+    ///This spews LLVM at me
     //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
     rule [build-block-wrong-pixel-wrong-colour]: 
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
@@ -172,6 +178,7 @@ module KPIET
         requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
           
 
+    
     rule [build-block-wrong-pixel-out-bounds]:
         <k> makeBlock (Position:Coord, _BlockID:Int) => . ...</k>
         <program> Program:Map </program>
@@ -184,12 +191,27 @@ module KPIET
     //<blockworkspace> contains all the pixels in the current block we are building. 
     //So we should deplete thet cell until it is empty, to create the block
     rule [build-block-finish-up-rightright]: 
-        <k> build (BlockID:Int)  </k>
+        <k> build (BlockID:Int)  ...</k>
         <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X1,Y1) ))) ...</block>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X1 >Int X2) 
             orBool (X1 ==Int X2 andBool Y1 <=Int Y2 andBool (notBool(Y1 ==Int Y2)))  //The new point is the new right-bottom pixel in the block
         //TODO this is where you left off
+
+    rule [build-block-finish-up-fin]: 
+        <k> build (BlockID:Int) ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int))=> .List ... </blockworkspace>
+        requires (X1 >Int X2) 
+            orBool (X1 ==Int X2 andBool Y1 <=Int Y2 andBool (notBool(Y1 ==Int Y2)))  //The new point is the new right-bottom pixel in the block
+        //TODO not finished
+
+    rule [build-block-finished]: //we have finished constructing the block, so now we step
+        <k> build(_) => step ...</k>
+        <blockworkspace>.List</blockworkspace> 
+
+
+
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
 
