@@ -160,13 +160,14 @@ module KPIET
                 makeBlock (point(X -Int 1, Y),BlockID)    
          ...</k>
         <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
-        //TODO uncomment this
-        //<owner> ... .Map => point(X,Y)|->BlockID ...</owner>  // the current position is not already mapped (now map it)? TODO not sure if this works...
-        <owner> Owner:Map </owner>
+        //TODO uncomment this THIS LINE IS THE ONE CAUSING THE "AMBIGUOUUS COMPLETION" ERROR AAAAAAAAA I CAN'T HAVE THE SAME CELL APPEAR TWICE IN A RULE
+        //TODO I need to make the updating in Owner happen somewhere else...
+        <owner> ... .Map => point(X,Y)|->BlockID</owner>  // the current position is not already mapped (now map it)? TODO not sure if this works...
+        //<owner> Owner:Map </owner>
         <block> ... BlockID |-> block(MainColour:Colour, _ , (_)) ... </block>
         <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
-            andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
+            //andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
 
     ///This spews LLVM at me
