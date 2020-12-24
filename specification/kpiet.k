@@ -78,7 +78,7 @@ module KPIET
         <nextLines> Ls:Lines => .</nextLines>  
 
     rule [parse-next-pixel]:      
-        <k>P:Colour  L:Line => P ~> L</k>
+        <k>P:Pixel  L:Line => P ~> L</k>
         <buildingx> X:Int => X +Int 1 </buildingx> 
 
 
