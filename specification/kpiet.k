@@ -101,7 +101,8 @@ module KPIET
     
     //TODO: black border cells
     syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
-    syntax K ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
+    //syntax K ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
+    syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
 
     //syntax K ::= "{" .List "}"
 
@@ -156,9 +157,9 @@ module KPIET
     //spews LLVM
     rule [build-block]:
         <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
-                makeBlock (point(X +Int 1, Y),BlockID) ~>
-                makeBlock (point(X, Y +Int 1),BlockID) ~>             
-                makeBlock (point(X, Y -Int 1),BlockID) ~>
+                //makeBlock (point(X +Int 1, Y),BlockID) ~>
+                //makeBlock (point(X, Y +Int 1),BlockID) ~>             
+                //makeBlock (point(X, Y -Int 1),BlockID) ~>
                 makeBlock (point(X -Int 1, Y),BlockID)    
          ...</k>
         <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
@@ -233,19 +234,19 @@ module KPIET
         requires (X2 >Int X1) 
             orBool (X1 ==Int X2 andBool Y2 >Int Y1 )  //The new point is the new left-top pixel in the block
 
-    rule [build-block-upright]: 
-        <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(>)) |-> point(X1,Y1) ))) ...</block>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y2 >Int Y1) 
-            orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new top-right pixel in the block
-
     rule [build-block-upleft]: 
         <k> build (BlockID:Int)  ...</k>
         <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(<)) |-> point(X1,Y1) ))) ...</block>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (Y2 >Int Y1) 
             orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new top-left pixel in the block
+
+    rule [build-block-upright]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (Y2 >Int Y1) 
+            orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new top-right pixel in the block
 
 
     //this pixel does not /no longer updates the block edges, so just add it to the block mapping,and increment block size
@@ -272,7 +273,7 @@ module KPIET
                 direction(DP(^), CC(>)) |-> point(URX, URY)  
                 direction(DP(^), CC(<)) |-> point(ULX, ULY) 
             ))) ...</block>
-        <blockworkspace>ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
+        <blockworkspace> ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
         requires    notBool ((X >Int RRX)  orBool (X ==Int RRX andBool Y >Int RRY)) //not the right-bottom
             andBool notBool ((X >Int RLX)  orBool (X ==Int RLX andBool RLY >Int Y)) //not the right-top
             andBool notBool ((DRY >Int Y)  orBool (Y ==Int DRY andBool DRX >Int X)) //not the bottom-left
@@ -291,7 +292,7 @@ module KPIET
 
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
 
-    syntax Colour ::= "TranslateHexcode" Hexcode
+    syntax Colour ::= "TranslateHexcode" Hexcode [function, functional]
 
 
     //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
@@ -309,7 +310,7 @@ module KPIET
 
 
 
-    syntax Bool ::= Colour "==Colour" Colour [strict]
+    syntax Bool ::= Colour "==Colour" Colour [strict,function, functional]
     rule color(black) ==Colour color(white) => false
     rule color(white) ==Colour color(black) => false
     rule color(black) ==Colour color(black) => true
@@ -486,7 +487,7 @@ module KPIET
                             <k> ptr =>  rotdp(abs(Steps)) ...</k>
                             <stack>ListItem(Steps:Int) => .List ... </stack>        
 
-        syntax K::= "rotdp" "(" Int ")" [strict]
+        syntax State::= "rotdp" "(" Int ")" [strict]
 
         rule    <k>rotdp(0) => . ...</k>
         rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
@@ -507,7 +508,7 @@ module KPIET
                             <stack>ListItem(C:Int) => .List ... </stack> 
 
 
-        syntax K::= "rotcc" "(" Int ")" [strict]
+        syntax State::= "rotcc" "(" Int ")" [strict]
         rule    <k>rotcc(0) => . ...</k>
         rule    <k>rotcc(X:Int) => rotcc(X -Int 1) ...</k>
                 <CC>CC(>) => CC(<)</CC>
@@ -548,10 +549,10 @@ module KPIET
                         
 
 
-    syntax String ::= "IntToChar" "(" Int ")" [strict]
+    syntax String ::= "IntToChar" "(" Int ")" [strict, function, functional]
     //rule IntToChar(Input:Int) => Id2String(((Input %Int 256) +Int 256) %Int 256) [structural]
     //TODO return to the above
-    syntax K ::= "PrintChar" "(" String ")" [strict]
+    syntax State ::= "PrintChar" "(" String ")" [strict]
     rule 
                             <k>PrintChar (S:String) => . ...</k> 
                             <output> ... .List => ListItem(S)</output> [structural]
@@ -559,7 +560,7 @@ module KPIET
 
 	
 
-    syntax Int ::= "abs" "("Int")"[strict]
+    syntax Int ::= "abs" "("Int")"[strict, function, functional]
     rule abs(X:Int) => X:Int requires X >Int 0
     rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0) 
 endmodule
