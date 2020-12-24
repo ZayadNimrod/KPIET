@@ -97,8 +97,9 @@ module KPIET
     // PATHING
     // ####
     //TODO: Go into VM, change empty transitions to transitions to "step"
+    //TODO: Maybe we don't need this?
     
-    //TODO: black border cells?
+    //TODO: black border cells
     syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
     syntax K ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
 
@@ -116,6 +117,7 @@ module KPIET
     // Take the colour at the new <PP>, run TranslateInstruction on it and <currentColour>, 
     // if <k> is step, do again
 
+    //TODO: NewPP is not where out Program pointer should point to next; we need to point to neighboring pixel as defined by DP, relative to NewPP
     rule [next-step-mapping-exists]:
         <k> step => TranslateInstruction OldColour NewColour... </k>
         <PP> OldPP:Coord => NewPP </PP> 
@@ -189,23 +191,96 @@ module KPIET
 
     //<blockworkspace> contains all the pixels in the current block we are building. 
     //So we should deplete thet cell until it is empty, to create the block
-    rule [build-block-finish-up-rightright]: 
+    rule [build-block-rightright]: 
         <k> build (BlockID:Int)  ...</k>
         <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(>), CC(>)) |-> point(X1,Y1) ))) ...</block>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X1 >Int X2) 
-            orBool (X1 ==Int X2 andBool Y1 <=Int Y2 andBool (notBool(Y1 ==Int Y2)))  //The new point is the new right-bottom pixel in the block
-        //TODO this is where you left off
+            orBool (X1 ==Int X2 andBool Y1 >Int Y2)  //The new point is the new right-bottom pixel in the block
 
-    //this pixel does not /no longer update the block edges, so just add it, increment block size
-    rule [build-block-finish-up-fin]: 
-        <k> build (BlockID:Int) ...</k>
-        <owner> ... .Map => point(X1,X2) |-> BlockID</owner>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( _ )) => block(C , Size +Int 1, ( _ ))) ...</block>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int))=> .List ... </blockworkspace>
+    rule [build-block-rightleft]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(>), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X1 >Int X2) 
-            orBool (X1 ==Int X2 andBool Y1 <=Int Y2 andBool (notBool(Y1 ==Int Y2)))  //The new point is the new right-bottom pixel in the block
-        //TODO not finished
+            orBool (X1 ==Int X2 andBool  Y2 >Int Y1 )  //The new point is the new right-top pixel in the block
+
+    rule [build-block-downright]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(v), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(v), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (Y2 >Int Y1) 
+            orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new bottom-left pixel in the block
+
+    rule [build-block-downleft]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(v), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(v), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (Y2 >Int Y1) 
+            orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new bottom-right pixel in the block
+
+    rule [build-block-leftleft]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(<), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(<), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (X2 >Int X1) 
+            orBool (X1 ==Int X2 andBool Y1 >Int Y2 )  //The new point is the new left-bottom pixel in the block
+
+    rule [build-block-leftright]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(<), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(<), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (X2 >Int X1) 
+            orBool (X1 ==Int X2 andBool Y2 >Int Y1 )  //The new point is the new left-top pixel in the block
+
+    rule [build-block-upright]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (Y2 >Int Y1) 
+            orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new top-right pixel in the block
+
+    rule [build-block-upleft]: 
+        <k> build (BlockID:Int)  ...</k>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+        requires (Y2 >Int Y1) 
+            orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new top-left pixel in the block
+
+
+    //this pixel does not /no longer updates the block edges, so just add it to the block mapping,and increment block size
+    rule [build-block-finish-up]: 
+        <k> build (BlockID:Int) ...</k>
+        <owner> ... .Map => point(X,Y) |-> BlockID</owner>
+        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( 
+            direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
+            direction(DP(>), CC(<)) |-> point(RLX:Int, RLY:Int)  
+            direction(DP(v), CC(>)) |-> point(DRX:Int, DRY:Int)  
+            direction(DP(v), CC(<)) |-> point(DLX:Int, DLY:Int) 
+            direction(DP(<), CC(>)) |-> point(LRX:Int, LRY:Int) 
+            direction(DP(<), CC(<)) |-> point(LLX:Int, LLY:Int) 
+            direction(DP(^), CC(>)) |-> point(URX:Int, URY:Int)  
+            direction(DP(^), CC(<)) |-> point(ULX:Int, ULY:Int) 
+             )) 
+            => block(C , Size +Int 1, ( 
+                direction(DP(>), CC(>)) |-> point(RRX, RRY) 
+                direction(DP(>), CC(<)) |-> point(RLX, RLY)  
+                direction(DP(v), CC(>)) |-> point(DRX, DRY)  
+                direction(DP(v), CC(<)) |-> point(DLX, DLY) 
+                direction(DP(<), CC(>)) |-> point(LRX, LRY) 
+                direction(DP(<), CC(<)) |-> point(LLX, LLY) 
+                direction(DP(^), CC(>)) |-> point(URX, URY)  
+                direction(DP(^), CC(<)) |-> point(ULX, ULY) 
+            ))) ...</block>
+        <blockworkspace>ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
+        requires    notBool ((X >Int RRX)  orBool (X ==Int RRX andBool Y >Int RRY)) //not the right-bottom
+            andBool notBool ((X >Int RLX)  orBool (X ==Int RLX andBool RLY >Int Y)) //not the right-top
+            andBool notBool ((DRY >Int Y)  orBool (Y ==Int DRY andBool DRX >Int X)) //not the bottom-left
+            andBool notBool ((DLY >Int Y)  orBool (Y ==Int DLY andBool X >Int DLX)) //not the bottom-right
+            andBool notBool ((LRX >Int X)  orBool (X ==Int LRX andBool LRY >Int Y)) //not the left-top
+            andBool notBool ((LLX >Int X)  orBool (X ==Int LLX andBool Y >Int LLY)) //not the left-bottom
+            andBool notBool ((URX >Int Y)  orBool (Y ==Int URY andBool X >Int URX)) //not the top-right
+            andBool notBool ((ULY >Int Y)  orBool (Y ==Int ULY andBool ULX >Int X)) //not the top-left
 
     rule [build-block-finished]: //we have finished constructing the block, so now we step
         <k> build(_) => step ...</k>
