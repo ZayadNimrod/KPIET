@@ -307,7 +307,7 @@ module KPIET
 
 
 
-    syntax Bool ::= Colour "==Colour" Colour [strict,function, functional]
+    syntax Bool ::= Colour "==Colour" Colour [function, functional] //refuses to be [strict] as well
     rule color(black) ==Colour color(white) => false
     rule color(white) ==Colour color(black) => false
     rule color(black) ==Colour color(black) => true
@@ -356,7 +356,7 @@ module KPIET
                         "dup"   |   "roll"  |   "innum" |
                         "inchar"|   "outnum"|   "outchar"
 
-                        | "TranslateInstruction" Colour Colour [strict, function, functional]
+                        | "TranslateInstruction" Colour Colour [ function, functional] //[strict, function, functional] strict was casuing LLVM issues too...
                         | "LookupInstruction" Int Int [function, functional]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
                         | "nop"
 
@@ -545,10 +545,10 @@ module KPIET
                         
 
 
-    syntax String ::= "IntToChar" "(" Int ")" [strict, function, functional]
+    syntax String ::= "IntToChar" "(" Int ")" [ function, functional] //[strict] pls
     //rule IntToChar(Input:Int) => Id2String(((Input %Int 256) +Int 256) %Int 256) [structural]
     //TODO return to the above
-    syntax State ::= "PrintChar" "(" String ")" [strict]
+    syntax State ::= "PrintChar" "(" String ")" //[strict] LLVM really hates [strict] tags with the new K version...
     rule 
                             <k>PrintChar (S:String) => . ...</k> 
                             <output> ... .List => ListItem(S)</output> [structural]
@@ -556,7 +556,7 @@ module KPIET
 
 	
 
-    syntax Int ::= "abs" "("Int")"[strict, function, functional]
+    syntax Int ::= "abs" "("Int")" [function, functional]//[strict, function, functional]
     rule abs(X:Int) => X:Int requires X >Int 0
     rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0) 
 
