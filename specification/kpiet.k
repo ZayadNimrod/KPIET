@@ -97,14 +97,11 @@ module KPIET
     // PATHING
     // ####
     //TODO: Go into VM, change empty transitions to transitions to "step"
-    //TODO: Maybe we don't need this?
+    //TODO: Maybe we don't need that?
     
     //TODO: black border cells
     syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
-    //syntax K ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
     syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
-
-    //syntax K ::= "{" .List "}"
 
   
     syntax BlockDef ::= "block" "(" Colour "," Int ","  "(" Map ")" ")"
@@ -352,7 +349,6 @@ module KPIET
     rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
     //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
-    syntax KResult::= Int | Colour
     syntax Instruction ::=          "push"  |   "pop"   |
                         "add"   |   "sub"   |   "mult"  |
                         "div"   |   "mod"   |   "not"   |
@@ -360,9 +356,9 @@ module KPIET
                         "dup"   |   "roll"  |   "innum" |
                         "inchar"|   "outnum"|   "outchar"
 
-                        | "TranslateInstruction" Colour Colour [strict]
-                        | "LookupInstruction" Int Int [strict]
-
+                        | "TranslateInstruction" Colour Colour [strict, function, functional]
+                        | "LookupInstruction" Int Int [function, functional]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
+                        | "nop"
 
     syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
                     |   "HueDifference" Hue Hue [function, functional]
@@ -374,10 +370,10 @@ module KPIET
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
     rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
     //When a white pixel is involved in the transition, no instruction is exectuted
-    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => . //moving from white to another pixel results in NOP
-    rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => . //moving to  white from another pixel results in NOP
-    rule [translate-instruction-from-black]:    TranslateInstruction color(black) _   => . //TODO full effects
-    rule [translate-instruction-to-black]:      TranslateInstruction _ color(black)   => . //TODO full effects
+    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => nop //moving from white to another pixel results in NOP
+    rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => nop //moving to  white from another pixel results in NOP
+    rule [translate-instruction-from-black]:    TranslateInstruction color(black) _   => nop //TODO full effects
+    rule [translate-instruction-to-black]:      TranslateInstruction _ color(black)   => nop //TODO full effects
 
     //The difference between two lightnesses of the same lightness is zero
     rule [lightness-difference-base-light]:         LightnessDifference light   light   => 0
@@ -409,7 +405,7 @@ module KPIET
 
 
     
-    rule [instruction-resolution-none]:     LookupInstruction 0 0 => .
+    rule [instruction-resolution-none]:     LookupInstruction 0 0 => nop
     rule [instruction-resolution-push]:     LookupInstruction 1 0 => push
     rule [instruction-resolution-pop]:      LookupInstruction 2 0 => pop
     rule [instruction-resolution-add]:      LookupInstruction 0 1 => add
@@ -563,4 +559,7 @@ module KPIET
     syntax Int ::= "abs" "("Int")"[strict, function, functional]
     rule abs(X:Int) => X:Int requires X >Int 0
     rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0) 
+
+
+    rule [process-nop]: <k> nop => step ...</k> [structural]
 endmodule
