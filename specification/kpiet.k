@@ -260,7 +260,7 @@ module KPIET
             direction(DP(^), CC(>)) |-> point(URX:Int, URY:Int)  
             direction(DP(^), CC(<)) |-> point(ULX:Int, ULY:Int) 
              )) 
-            => block(C , Size +Int 1, ( 
+            => block(C , Size +Int 1, ( //TODO: Is the reason that this won't update properly becuase Maps still care about order when being accessed like this?
                 direction(DP(>), CC(>)) |-> point(RRX, RRY) 
                 direction(DP(>), CC(<)) |-> point(RLX, RLY)  
                 direction(DP(v), CC(>)) |-> point(DRX, DRY)  
