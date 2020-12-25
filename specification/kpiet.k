@@ -304,7 +304,7 @@ module KPIET
                         "xc0c0ff"   | "x0000ff" | "x0000c0" |
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
                         "x000000"   | "xffffff"  | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
-
+                        //TODO we can use a Regex here instead of Id, according to the K documentation.
 
 
     syntax Bool ::= Colour "==Colour" Colour [function, functional] //refuses to be [strict] as well
@@ -368,7 +368,7 @@ module KPIET
 
     // Get the instruction that a transition between two colours maps to
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
-    rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
+    rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => nop //LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
     //When a white pixel is involved in the transition, no instruction is exectuted
     rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => nop //moving from white to another pixel results in NOP
     rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => nop //moving to  white from another pixel results in NOP
@@ -376,23 +376,30 @@ module KPIET
     rule [translate-instruction-to-black]:      TranslateInstruction _ color(black)   => nop //TODO full effects
 
     //The difference between two lightnesses of the same lightness is zero
-    rule [lightness-difference-base-light]:         LightnessDifference light   light   => 0
-    rule [lightness-difference-base-normal]:        LightnessDifference normal  normal  => 0
-    rule [lightness-difference-base-dark]:          LightnessDifference dark    dark    => 0
+    rule [lightness-difference-base-light]:         LightnessDifference L1:Lightness   L2:Lightness   => 0  requires L1 ==Lightness L2
 
    //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
-    rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1
-    rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1
-    rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1
+   //TODO: make sure L is not the base case
+    rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1 requires notBool(L ==Lightness normal)
+    rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1 requires notBool(L ==Lightness dark)
+    rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1 requires notBool(L ==Lightness light)
+
+
+    syntax Bool ::= Lightness "==Lightness" Lightness [function, functional] //refuses to be [strict]
+    rule light ==Lightness light => true
+    rule normal ==Lightness normal => true
+    rule dark ==Lightness dark => true
+
+    rule light ==Lightness normal => false
+    rule light ==Lightness dark => false
+    rule normal ==Lightness light => false
+    rule normal ==Lightness dark => false
+    rule dark ==Lightness normal => false
+    rule dark ==Lightness light => false
 
 
     //The difference in hues of the same hues is zero
-    rule [hue-difference-base-red]:             HueDifference       red     red     => 0
-    rule [hue-difference-base-yellow]:          HueDifference       yellow  yellow  => 0
-    rule [hue-difference-base-green]:           HueDifference       green   green   => 0
-    rule [hue-difference-base-cyan]:            HueDifference       cyan    cyan    => 0
-    rule [hue-difference-base-blue]:            HueDifference       blue    blue    => 0
-    rule [hue-difference-base-magenta]:         HueDifference       magenta magenta => 0
+    rule [hue-difference-base-red]:             HueDifference       H1:Hue      H2:Hue     => 0 requires H1 ==Hue H2
  
     
     //If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
@@ -402,6 +409,53 @@ module KPIET
     rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1
     rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1
     rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1
+
+
+
+
+    syntax Bool ::= Hue "==Hue" Hue [function, functional] //refuses to be [strict]
+    rule red ==Hue red => true
+    rule yellow ==Hue yellow => true
+    rule green ==Hue green => true
+    rule cyan ==Hue cyan => true
+    rule blue ==Hue blue => true
+    rule magenta ==Hue magenta => true
+
+    rule red ==Hue yellow => false
+    rule red ==Hue green => false
+    rule red ==Hue cyan => false
+    rule red ==Hue blue => false
+    rule red ==Hue magenta => false
+
+    rule yellow ==Hue red => false
+    rule yellow ==Hue green => false
+    rule yellow ==Hue cyan => false
+    rule yellow ==Hue blue => false
+    rule yellow ==Hue magenta => false
+
+    rule green ==Hue red => false
+    rule green ==Hue yellow => false
+    rule green ==Hue cyan => false
+    rule green ==Hue blue => false
+    rule green ==Hue magenta => false
+
+    rule cyan ==Hue red => false
+    rule cyan ==Hue yellow => false
+    rule cyan ==Hue green => false
+    rule cyan ==Hue blue => false
+    rule cyan ==Hue magenta => false
+
+    rule blue ==Hue red => false
+    rule blue ==Hue yellow => false
+    rule blue ==Hue green => false
+    rule blue ==Hue cyan => false
+    rule blue ==Hue magenta => false
+
+    rule magenta ==Hue red => false
+    rule magenta ==Hue yellow => false
+    rule magenta ==Hue green => false
+    rule magenta ==Hue cyan => false
+    rule magenta ==Hue blue => false
 
 
     
