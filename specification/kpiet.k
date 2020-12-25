@@ -27,8 +27,8 @@ module KPIET
         <output color="Orchid"> .List </output>
 
         //used when building up <program>
-        <buildingx>0</buildingx>
-        <buildingy>0</buildingy>
+        <buildingx>-1</buildingx>
+        <buildingy>-1</buildingy>
         <nextLines> . </nextLines>
 
 
@@ -68,7 +68,7 @@ module KPIET
     rule [parse-next-line]: 
         <k>L:Line ; Ls:Lines => L </k>   
         <nextLines> . => Ls </nextLines>              
-        <buildingx> _X:Int => 0 </buildingx>
+        <buildingx> _X:Int => -1 </buildingx>
         <buildingy> Y:Int => Y +Int 1 </buildingy> 
 
 
@@ -117,7 +117,7 @@ module KPIET
 
     //TODO: NewPP is not where out Program pointer should point to next; we need to point to neighboring pixel as defined by DP, relative to NewPP
     rule [next-step-mapping-exists]:
-        <k> step => TranslateInstruction OldColour NewColour... </k>
+        <k> step => TranslateInstruction OldColour NewColour ... </k>
         <PP> OldPP:Coord => NewPP </PP> 
         <exitedPP> _ => OldPP </exitedPP>
         <program> ... NewPP |-> NewColour:Colour ...</program>       
@@ -154,9 +154,9 @@ module KPIET
     //spews LLVM
     rule [build-block]:
         <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
-                //makeBlock (point(X +Int 1, Y),BlockID) ~>
-                //makeBlock (point(X, Y +Int 1),BlockID) ~>             
-                //makeBlock (point(X, Y -Int 1),BlockID) ~>
+                makeBlock (point(X +Int 1, Y),BlockID) ~>
+                makeBlock (point(X, Y +Int 1),BlockID) ~>             
+                makeBlock (point(X, Y -Int 1),BlockID) ~>
                 makeBlock (point(X -Int 1, Y),BlockID)    
          ...</k>
         <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
@@ -425,55 +425,55 @@ module KPIET
     rule [instruction-resolution-out(char)]:LookupInstruction 2 4 => outchar
  
     //push: Pushes the value (size) of the colour block just exited on to the stack. Note that values of colour blocks are not automatically pushed on to the stack - this push operation must be explicitly carried out.
-    rule [instruction-push]: <k> push => . </k>  //TODO get the size of the current block
+    rule [instruction-push]: <k> push => nop </k>  //TODO get the size of the current block
     
     //pop: Pops the top value off the stack and discards it.
     rule [instruction-pop]: 
-                            <k> pop =>  .</k>
+                            <k> pop =>  nop</k>
                             <stack> ... ListItem(_) => .List  </stack>
 
     //add: Pops the top two values off the stack, adds them, and pushes the result back on the stack.
     rule [instruction-add]: 
-                            <k> add =>  .</k>
+                            <k> add =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I1 +Int I2) ... </stack>
 
     //subtract: Pops the top two values off the stack, calculates the second top value minus the top value, and pushes the result back on the stack.
     rule [instruction-subtract]: 
-                            <k> sub =>  .</k>
+                            <k> sub =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 -Int I1) ... </stack>
 
     //multiply: Pops the top two values off the stack, multiplies them, and pushes the result back on the stack.
     rule [instruction-multiply]: 
-                            <k> mult =>  .</k>
+                            <k> mult =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 *Int I1) ... </stack>
 
     //divide: Pops the top two values off the stack, calculates the integer division of the second top value by the top value, and pushes the result back on the stack. If a divide by zero occurs, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
     rule [instruction-divide]: 
-                            <k> div =>  .</k>
+                            <k> div =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 /Int I1) ... </stack> //TODO: ignoring a div by zero rather than locking up
     
     //mod: Pops the top two values off the stack, calculates the second top value modulo the top value, and pushes the result back on the stack. The result has the same sign as the divisor (the top value). If the top value is zero, this is a divide by zero error, which is handled as an implementation-dependent error, though simply ignoring the command is recommended. (See note below.)
     rule [instruction-modulo]: 
-                            <k> mod =>  .</k>
+                            <k> mod =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> //TODO: ignoring a div by zero  -i.e use "when"-rather than locking up
                             //TODO: make sure sign is the same as the divisor
     
     //not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
     rule [instruction-not-nonzero]: 
-                            <k> not => .</k>
+                            <k> not => nop</k>
                             <stack> ListItem(I1:Int) => ListItem(0) ... </stack> 
                             when notBool(I1 ==Int 0)
     rule [instruction-not-zero]: 
-                            <k> not => .</k>
+                            <k> not => nop</k>
                             <stack> ListItem(0) => ListItem(1) ... </stack> 
 
     //greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
     rule [instruction-greater-top-greater]: 
-                            <k> great =>  .</k>
+                            <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
                             when Top >Int Bottom
     rule [instruction-greater-to-not-greater]: 
-                            <k> great =>  .</k>
+                            <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
                             when notBool(Top >Int Bottom)
 
@@ -485,7 +485,7 @@ module KPIET
 
         syntax State::= "rotdp" "(" Int ")" [strict]
 
-        rule    <k>rotdp(0) => . ...</k>
+        rule    <k>rotdp(0) => nop ...</k>
         rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
                 <DP>DP(>) => DP(v)</DP>
                 requires notBool (X ==Int 0)
@@ -505,7 +505,7 @@ module KPIET
 
 
         syntax State::= "rotcc" "(" Int ")" [strict]
-        rule    <k>rotcc(0) => . ...</k>
+        rule    <k>rotcc(0) => nop ...</k>
         rule    <k>rotcc(X:Int) => rotcc(X -Int 1) ...</k>
                 <CC>CC(>) => CC(<)</CC>
                 requires notBool (X ==Int 0)
@@ -514,29 +514,29 @@ module KPIET
                 requires notBool (X ==Int 0)
     //duplicate: Pushes a copy of the top value on the stack on to the stack.
     rule [instruction-duplicate]: 
-                            <k> dup => .</k>
+                            <k> dup => nop</k>
                             <stack>ListItem(Value:Int) => ListItem(Value) ListItem(Value) ...</stack>
 
     //roll: Pops the top two values off the stack and "rolls" the remaining stack entries to a depth equal to the second value popped, by a number of rolls equal to the first value popped. A single roll to depth n is defined as burying the top value on the stack n deep and bringing all values above it up by 1 place. A negative number of rolls rolls in the opposite direction. A negative depth is an error and the command is ignored. If a roll is greater than an implementation-dependent maximum stack depth, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
     rule [instruction-roll]: 
-                            <k>roll => .</k>
+                            <k>roll => nop</k>
         //<stack> </stack> ///TODO: AAAAAAA how to even begin
 
 
     //in: Reads a value from STDIN as either a number or character, depending on the particular incarnation of this command and pushes it on to the stack. If no input is waiting on STDIN, this is an error and the command is ignored. If an integer read does not receive an integer value, this is an error and the command is ignored.
     rule [instruction-in-number]: 
-                            <k>innum => .</k>
+                            <k>innum => nop</k>
                             <stack> .List => ListItem(I) ... </stack>
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
     rule [instruction-incharacter]: 
-                            <k>inchar => .</k>
+                            <k>inchar => nop</k>
                             <stack> .List => ListItem(S) ... </stack>
                             <input> ListItem(S:String) => .List ...</input>  //TODO: specification is not too clear, but most implementations get one character and convert it to an integer
 
 
     //out: Pops the top value off the stack and prints it to STDOUT as either a number or character, depending on the particular incarnation of this command.
     rule [instruction-out-number]: 
-                            <k> outnum => .</k>
+                            <k> outnum => nop</k>
                             <stack>ListItem(Value:Int) => .List ...</stack>
                             <output> ... .List => ListItem(Value)</output>
     rule [instruction-out-character]: 
@@ -550,7 +550,7 @@ module KPIET
     //TODO return to the above
     syntax State ::= "PrintChar" "(" String ")" //[strict] LLVM really hates [strict] tags with the new K version...
     rule 
-                            <k>PrintChar (S:String) => . ...</k> 
+                            <k>PrintChar (S:String) => nop ...</k> 
                             <output> ... .List => ListItem(S)</output> [structural]
 
 
@@ -561,5 +561,5 @@ module KPIET
     rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0) 
 
 
-    rule [process-nop]: <k> nop => step ...</k> [structural]
+    //rule [process-nop]: <k> nop => step ...</k> [structural]
 endmodule
