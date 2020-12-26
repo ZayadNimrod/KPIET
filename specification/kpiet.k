@@ -1,7 +1,12 @@
+require "helpers.k"
+
 module KPIET
     imports DOMAINS-SYNTAX
     imports DOMAINS
     
+    imports HELPERS
+
+
     configuration <T>        
     
         <k> $PGM:Program</k> //the current instruction we are working on
@@ -51,7 +56,6 @@ module KPIET
     //####
 
     
-    syntax Coord ::= "point" "(" Int "," Int ")"
     syntax KResult ::= Int | Colour | Coord | Instruction | Bool
     syntax Program ::= Lines
 
@@ -104,17 +108,10 @@ module KPIET
     // ####
     // PATHING
     // ####
-    //TODO: Go into VM, change empty transitions to transitions to "step"
-    //TODO: Maybe we don't need that?
     
     //TODO: black border cells
     syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
     syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
-
-  
-    //syntax BlockDef ::= "block" "(" Colour "," Int ","  "(" Map ")" ")"
-    syntax DirectionPointer ::= "DP" "(" "^" ")" |"DP" "(" "v" ")" |"DP" "(" "<" ")"|"DP" "(" ">" ")"
-    syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
 
     // Summary of a step
     // We begin: PP at location, <currentColour> holds colour of the current block, DP/CC in some configuration
@@ -123,10 +120,9 @@ module KPIET
     // Take the colour at the new <PP>, run TranslateInstruction on it and <currentColour>, 
     // if <k> is step, do again
 
-    //TODO: NewPP is not where out Program pointer should point to next; we need to point to neighboring pixel as defined by DP, relative to NewPP
     rule [next-step-mapping-exists]:
         <k> step => TranslateInstruction OldColour NewColour ... </k>
-        <PP> OldPP:Coord => NewPP </PP> 
+        <PP> OldPP:Coord => NewPP +Coord DPToOffset(D)</PP> 
         <exitedPP> _ => OldPP </exitedPP>
         <program> ... NewPP |-> NewColour:Colour ...</program>       
         <owner> ... OldPP |-> OldBlockID:Int ... </owner>
@@ -388,10 +384,7 @@ module KPIET
 
 
     //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
-    syntax Colour ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")" 
-    syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
-    syntax Lightness ::= "light" | "normal" | "dark" 
-
+   
     syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
                         "xffffc0"   | "xffff00" | "x00c000" | 
                         "xc0ffc0"   | "x00ff00" | "x00c000" | 
@@ -402,16 +395,7 @@ module KPIET
                         //TODO we can use a Regex here instead of Id, according to the K documentation.
 
 
-    syntax Bool ::= Colour "==Colour" Colour [function, functional] //refuses to be [strict] as well
-    rule color(black) ==Colour color(white) => false
-    rule color(white) ==Colour color(black) => false
-    rule color(black) ==Colour color(black) => true
-    rule color(white) ==Colour color(white) => true
-    rule color(black) ==Colour color(_:Lightness _:Hue) => false
-    rule color(white) ==Colour color(_:Lightness _:Hue) => false
-    rule color(_:Lightness _:Hue) ==Colour color(black) => false
-    rule color(_:Lightness _:Hue) ==Colour color(white) => false
-    rule color(L1:Lightness H1:Hue) ==Colour color(L2:Lightness H2:Hue) => LightnessDifference L1 L2 ==Int 0 andBool HueDifference H1 H2 ==Int 0
+   
                         
     //####
     // RELATED TO VIRTUAL MACHINE
@@ -451,8 +435,8 @@ module KPIET
                         "dup"   |   "roll"  |   "innum" |
                         "inchar"|   "outnum"|   "outchar"
 
-                        | "TranslateInstruction" Colour Colour [ function, functional] //[strict, function, functional] strict was casuing LLVM issues too...
-                        | "LookupInstruction" Int Int [function, functional]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
+                        | "TranslateInstruction" Colour Colour [strict, function]
+                        | "LookupInstruction" Int Int [strict, function]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
                         | "nop"
 
     syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
@@ -480,19 +464,6 @@ module KPIET
     rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1 requires notBool(L ==Lightness light)
 
 
-    syntax Bool ::= Lightness "==Lightness" Lightness [function, functional] //refuses to be [strict]
-    rule light ==Lightness light => true
-    rule normal ==Lightness normal => true
-    rule dark ==Lightness dark => true
-
-    rule light ==Lightness normal => false
-    rule light ==Lightness dark => false
-    rule normal ==Lightness light => false
-    rule normal ==Lightness dark => false
-    rule dark ==Lightness normal => false
-    rule dark ==Lightness light => false
-
-
     //The difference in hues of the same hues is zero
     rule [hue-difference-base-red]:             HueDifference       H1:Hue      H2:Hue     => 0 requires H1 ==Hue H2
  
@@ -505,52 +476,6 @@ module KPIET
     rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1
     rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1
 
-
-
-
-    syntax Bool ::= Hue "==Hue" Hue [function, functional] //refuses to be [strict]
-    rule red ==Hue red => true
-    rule yellow ==Hue yellow => true
-    rule green ==Hue green => true
-    rule cyan ==Hue cyan => true
-    rule blue ==Hue blue => true
-    rule magenta ==Hue magenta => true
-
-    rule red ==Hue yellow => false
-    rule red ==Hue green => false
-    rule red ==Hue cyan => false
-    rule red ==Hue blue => false
-    rule red ==Hue magenta => false
-
-    rule yellow ==Hue red => false
-    rule yellow ==Hue green => false
-    rule yellow ==Hue cyan => false
-    rule yellow ==Hue blue => false
-    rule yellow ==Hue magenta => false
-
-    rule green ==Hue red => false
-    rule green ==Hue yellow => false
-    rule green ==Hue cyan => false
-    rule green ==Hue blue => false
-    rule green ==Hue magenta => false
-
-    rule cyan ==Hue red => false
-    rule cyan ==Hue yellow => false
-    rule cyan ==Hue green => false
-    rule cyan ==Hue blue => false
-    rule cyan ==Hue magenta => false
-
-    rule blue ==Hue red => false
-    rule blue ==Hue yellow => false
-    rule blue ==Hue green => false
-    rule blue ==Hue cyan => false
-    rule blue ==Hue magenta => false
-
-    rule magenta ==Hue red => false
-    rule magenta ==Hue yellow => false
-    rule magenta ==Hue green => false
-    rule magenta ==Hue cyan => false
-    rule magenta ==Hue blue => false
 
 
     
@@ -711,4 +636,22 @@ module KPIET
 
 
     //rule [process-nop]: <k> nop => step ...</k> [structural]
+endmodule
+
+
+
+module KPIET-SYNTAX
+    imports DOMAINS
+
+    syntax Coord ::= "point" "(" Int "," Int ")"
+
+    syntax Colour ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")" 
+    syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
+    syntax Lightness ::= "light" | "normal" | "dark" 
+
+
+    syntax DirectionPointer ::= "DP" "(" "^" ")" |"DP" "(" "v" ")" |"DP" "(" "<" ")"|"DP" "(" ">" ")"
+    syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
+
+
 endmodule
