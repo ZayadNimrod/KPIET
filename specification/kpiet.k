@@ -14,7 +14,7 @@ module KPIET
         <stack> .List </stack> //the stack of values the program works on
 
         <DP>DP (>)</DP> 
-        <CC>CC (>)</CC> 
+        <CC>CC (<)</CC> 
         <PP> point(0,0) </PP> //program pointer, points to current pixel
         <exitedPP> point(0,0)</exitedPP>
 
@@ -84,8 +84,6 @@ module KPIET
         <k>P:Pixel  L:Line => P ~> L</k>
         <buildingx> X:Int => X +Int 1 </buildingx> 
 
-
-
     //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
     rule [place-pixel-in-map]:
         <k> C:Colour => . ...</k>
@@ -123,10 +121,9 @@ module KPIET
         <blockworkspace> .List </blockworkspace>
 
 
-    //TODO multiple ~> arrows doesn't seem to quite work, so we made the second `step` appear after finishing `build` (rule for that appears later)
+ 
     rule [next-step-no-mapping]:
-        //<k> step => makeBlock(OldPP , BlockID) ~> build(BlockID)  ~> step... </k>
-        <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID) ... </k>
+        <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID)  ~> step... </k>
         <PP> OldPP:Coord </PP>
         <program> ... OldPP |-> OldColour:Colour ...</program>  
         <owner> M:Map </owner>
@@ -170,7 +167,7 @@ module KPIET
         <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
-
+            andBool notBool(MainColour ==Colour color(white)) //white blocks follow different rules
 
     ///This spews LLVM at me
     //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
@@ -414,7 +411,7 @@ module KPIET
 
     // Get the instruction that a transition between two colours maps to
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
-    rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => nop //LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
+    rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
     //When a white pixel is involved in the transition, no instruction is exectuted
     rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => nop //moving from white to another pixel results in NOP
     rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => nop //moving to  white from another pixel results in NOP
@@ -597,7 +594,7 @@ module KPIET
 
   
 
-    //rule [process-nop]: <k> nop => step ...</k> [structural]
+    rule [process-nop]: <k> nop => . ...</k> [structural]
 endmodule
 
 
