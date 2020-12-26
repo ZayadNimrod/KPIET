@@ -56,34 +56,25 @@ module KPIET
     //####
 
     
-    syntax KResult ::= Int | Colour | Coord | Instruction | Bool
-    syntax Program ::= Lines
-
-    syntax Lines ::= List{Line, ";"}
-    syntax Line ::= List{Pixel, ""} 
-
-    syntax Pixel ::= Colour | Hexcode
-
+  
 
    
-    //get next pixel, convert to colour, map to its location, go to next pixel
-    rule H:Hexcode => TranslateHexcode H 
+    //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other   
+    syntax Colour ::= "TranslateHexcode" Hexcode [function]
 
-    
+
+    //get next pixel, convert to colour, map to its location, go to next pixel
+    rule H:Hexcode => TranslateHexcode H     
     
     rule [finished-parsing]:
         <k>.Lines => step </k>
         //<program> point( 0 , 0 ) |-> C </program>
-
-
 
     rule [parse-next-line]: 
         <k>L:Line ; Ls:Lines => L </k>   
         <nextLines> . => Ls </nextLines>              
         <buildingx> _X:Int => -1 </buildingx>
         <buildingy> Y:Int => Y +Int 1 </buildingy> 
-
-
 
     rule [parse-next-line-restore]:
         <k> .Line => Ls </k> 
@@ -378,23 +369,11 @@ module KPIET
 
 
 
-    //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other    
-
-    syntax Colour ::= "TranslateHexcode" Hexcode [function, functional]
 
 
-    //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
+  
    
-    syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
-                        "xffffc0"   | "xffff00" | "x00c000" | 
-                        "xc0ffc0"   | "x00ff00" | "x00c000" | 
-                        "xc0ffff"   | "x00ffff" | "x00c0c0" |
-                        "xc0c0ff"   | "x0000ff" | "x0000c0" |
-                        "xffc0ff"   | "xff00ff" | "xc000c0" |
-                        "x000000"   | "xffffff"  | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
-                        //TODO we can use a Regex here instead of Id, according to the K documentation.
-
-
+    
    
                         
     //####
@@ -428,19 +407,7 @@ module KPIET
     rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
     //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 
-    syntax Instruction ::=          "push"  |   "pop"   |
-                        "add"   |   "sub"   |   "mult"  |
-                        "div"   |   "mod"   |   "not"   |
-                        "great" |   "ptr"   |   "switch"|
-                        "dup"   |   "roll"  |   "innum" |
-                        "inchar"|   "outnum"|   "outchar"
 
-                        | "TranslateInstruction" Colour Colour [strict, function]
-                        | "LookupInstruction" Int Int [strict, function]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
-                        | "nop"
-
-    syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
-                    |   "HueDifference" Hue Hue [function, functional]
   
 
     
@@ -619,9 +586,7 @@ module KPIET
                         
 
 
-    syntax String ::= "IntToChar" "(" Int ")" [ function, functional] //[strict] pls
-    //rule IntToChar(Input:Int) => Id2String(((Input %Int 256) +Int 256) %Int 256) [structural]
-    //TODO return to the above
+   
     syntax State ::= "PrintChar" "(" String ")" //[strict] LLVM really hates [strict] tags with the new K version...
     rule 
                             <k>PrintChar (S:String) => nop ...</k> 
@@ -630,10 +595,7 @@ module KPIET
 
 	
 
-    syntax Int ::= "abs" "("Int")" [function, functional]//[strict, function, functional]
-    rule abs(X:Int) => X:Int requires X >Int 0
-    rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0) 
-
+  
 
     //rule [process-nop]: <k> nop => step ...</k> [structural]
 endmodule
@@ -643,15 +605,49 @@ endmodule
 module KPIET-SYNTAX
     imports DOMAINS
 
+    syntax KResult ::= Int | Colour | Coord | Instruction | Bool
+
     syntax Coord ::= "point" "(" Int "," Int ")"
 
+      //this system is clearer (and conceptually closer to spec), if a lot more verbose than the clever int encoding that most implementations do
     syntax Colour ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")" 
     syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
     syntax Lightness ::= "light" | "normal" | "dark" 
 
+    syntax Program ::= Lines
+
+    syntax Lines ::= List{Line, ";"}
+    syntax Line ::= List{Pixel, ""} 
+
+    syntax Pixel ::= Colour | Hexcode
+
 
     syntax DirectionPointer ::= "DP" "(" "^" ")" |"DP" "(" "v" ")" |"DP" "(" "<" ")"|"DP" "(" ">" ")"
     syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
+
+
+    syntax Instruction ::=          "push"  |   "pop"   |
+                    "add"   |   "sub"   |   "mult"  |
+                    "div"   |   "mod"   |   "not"   |
+                    "great" |   "ptr"   |   "switch"|
+                    "dup"   |   "roll"  |   "innum" |
+                    "inchar"|   "outnum"|   "outchar"
+
+                    | "TranslateInstruction" Colour Colour [strict, function]
+                    | "LookupInstruction" Int Int [strict, function]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
+                    | "nop"
+
+    syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
+                    |   "HueDifference" Hue Hue [function, functional]
+
+    syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
+                        "xffffc0"   | "xffff00" | "x00c000" | 
+                        "xc0ffc0"   | "x00ff00" | "x00c000" | 
+                        "xc0ffff"   | "x00ffff" | "x00c0c0" |
+                        "xc0c0ff"   | "x0000ff" | "x0000c0" |
+                        "xffc0ff"   | "xff00ff" | "xc000c0" |
+                        "x000000"   | "xffffff"  | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
+                        //TODO we can use a Regex here instead of Id, according to the K documentation.
 
 
 endmodule
