@@ -171,6 +171,22 @@ module KPIET
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
             andBool notBool(MainColour ==Colour color(white)) //white blocks follow different rules
 
+
+
+    rule [build-block-white]:
+        <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) => . ...</k>
+        <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
+        <owner> Owner:Map </owner>
+        <blocks> 
+            ... 
+            <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
+            ...
+        </blocks>
+        <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
+        requires (MainColour ==Colour color(white) ) //white pixels make single-pixel blocks
+            andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
+
+
     ///This spews LLVM at me
     //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
     rule [build-block-wrong-pixel-wrong-colour]: 
