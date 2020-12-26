@@ -259,7 +259,7 @@ module KPIET
             ...
         </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y2 >Int Y1) 
+        requires (Y1 >Int Y2) 
             orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new bottom-left pixel in the block
 
     rule [build-block-downleft]: 
@@ -275,7 +275,7 @@ module KPIET
             ...
         </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y2 >Int Y1) 
+        requires (Y1 >Int Y2) 
             orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new bottom-right pixel in the block
 
     rule [build-block-leftleft]: 
@@ -368,11 +368,11 @@ module KPIET
         <blockworkspace> ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
         requires    notBool ((X >Int RRX)  orBool (X ==Int RRX andBool Y >Int RRY)) //not the right-bottom
             andBool notBool ((X >Int RLX)  orBool (X ==Int RLX andBool RLY >Int Y)) //not the right-top
-            andBool notBool ((DRY >Int Y)  orBool (Y ==Int DRY andBool DRX >Int X)) //not the bottom-left
-            andBool notBool ((DLY >Int Y)  orBool (Y ==Int DLY andBool X >Int DLX)) //not the bottom-right
+            andBool notBool ((Y >Int DRY)  orBool (Y ==Int DRY andBool DRX >Int X)) //not the bottom-left
+            andBool notBool ((Y >Int DLY)  orBool (Y ==Int DLY andBool X >Int DLX)) //not the bottom-right
             andBool notBool ((LRX >Int X)  orBool (X ==Int LRX andBool LRY >Int Y)) //not the left-top
             andBool notBool ((LLX >Int X)  orBool (X ==Int LLX andBool Y >Int LLY)) //not the left-bottom
-            andBool notBool ((URX >Int Y)  orBool (Y ==Int URY andBool X >Int URX)) //not the top-right
+            andBool notBool ((URY >Int Y)  orBool (Y ==Int URY andBool X >Int URX)) //not the top-right
             andBool notBool ((ULY >Int Y)  orBool (Y ==Int ULY andBool ULX >Int X)) //not the top-left
 
     rule [build-block-finished]: //we have finished constructing the block, so now we step
