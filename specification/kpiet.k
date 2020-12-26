@@ -8,17 +8,6 @@ module KPIET
 
 
     configuration <T>        
-    
-        <k> $PGM:Program</k> //the current instruction we are working on
-
-        <stack> .List </stack> //the stack of values the program works on
-
-        <DP>DP (>)</DP> 
-        <CC>CC (<)</CC> 
-        <PP> point(0,0) </PP> //program pointer, points to current pixel
-        <exitedPP> point(0,0)</exitedPP>
-
-
         <program> .Map </program> //maps position to colour of the pixel there
         <owner> .Map </owner> //maps position to the block that owns it
 
@@ -32,6 +21,19 @@ module KPIET
             </block>    
         </blocks> 
 
+
+
+        <k> $PGM:Program</k> //the current instruction we are working on
+
+        <stack> .List </stack> //the stack of values the program works on
+
+        <DP>DP (>)</DP> 
+        <CC>CC (<)</CC> 
+        <PP> point(0,0) </PP> //program pointer, points to current pixel
+        <exitedPP> point(0,0)</exitedPP>
+        <timesToggled> 0 </timesToggled>
+
+       
         //TODO:K doesn't like streams anymore
         //<input color="magenta" stream = "stdin"> .List </input>
         //<output color="Orchid" stream = "stdout"> .List </output>
@@ -336,7 +338,7 @@ module KPIET
                 <id>BlockID</id>
                 <colour>_</colour> 
                 <size>Size:Int => Size+Int 1</size>
-                <transitions> //TODO: Is the reason that this won't update properly becuase Maps still care about order when being accessed like this?
+                <transitions> 
                     direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
                     direction(DP(>), CC(<)) |-> point(RLX:Int, RLY:Int)  
                     direction(DP(v), CC(>)) |-> point(DRX:Int, DRY:Int)  
@@ -415,14 +417,16 @@ module KPIET
     //When a white pixel is involved in the transition, no instruction is exectuted
     rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => nop //moving from white to another pixel results in NOP
     rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => nop //moving to  white from another pixel results in NOP
-    rule [translate-instruction-from-black]:    TranslateInstruction color(black) _   => nop //TODO full effects
-    rule [translate-instruction-to-black]:      TranslateInstruction _ color(black)   => nop //TODO full effects
+    rule [translate-instruction-from-black]:    TranslateInstruction color(black) _   => stop //this should never occur
+    rule [translate-instruction-to-black]:      
+        <k>TranslateInstruction _ color(black)   => blk(TT) ...</k>
+        <timesToggled> TT:Int => TT +Int 1</timesToggled>
+
 
     //The difference between two lightnesses of the same lightness is zero
     rule [lightness-difference-base-light]:         LightnessDifference L1:Lightness   L2:Lightness   => 0  requires L1 ==Lightness L2
 
    //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
-   //TODO: make sure L is not the base case
     rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1 requires notBool(L ==Lightness normal)
     rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1 requires notBool(L ==Lightness dark)
     rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1 requires notBool(L ==Lightness light)
@@ -518,12 +522,12 @@ module KPIET
 
     //pointer: Pops the top value off the stack and rotates the DP clockwise that many steps (anticlockwise if negative).
     rule [instruction-pointer]:
-                            <k> ptr =>  rotdp(abs(Steps)) ...</k>
+                            <k> ptr =>  rotdp(abs(Steps)) ~> nop ...</k>
                             <stack>ListItem(Steps:Int) => .List ... </stack>        
 
         syntax State::= "rotdp" "(" Int ")" [strict]
 
-        rule    <k>rotdp(0) => nop ...</k>
+        rule    <k>rotdp(0) => . ...</k>
         rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
                 <DP>DP(>) => DP(v)</DP>
                 requires notBool (X ==Int 0)
@@ -538,12 +542,12 @@ module KPIET
                 requires notBool (X ==Int 0)
     //switch: Pops the top value off the stack and toggles the CC that many times (the absolute value of that many times if negative).
     rule [instruction-switch]: 
-                            <k> switch =>  rotcc(abs(C)) ...</k>
+                            <k> switch =>  rotcc(abs(C)) ~> nop ...</k>
                             <stack>ListItem(C:Int) => .List ... </stack> 
 
 
         syntax State::= "rotcc" "(" Int ")" [strict]
-        rule    <k>rotcc(0) => nop ...</k>
+        rule    <k>rotcc(0) => . ...</k>
         rule    <k>rotcc(X:Int) => rotcc(X -Int 1) ...</k>
                 <CC>CC(>) => CC(<)</CC>
                 requires notBool (X ==Int 0)
@@ -593,8 +597,24 @@ module KPIET
 	
 
   
+    //a NOP occurs after every instruction. Thus, we can reset the timesToggled counter, becuase we did not hit a black pixel
+    rule [process-nop]: 
+        <k> nop => . ...</k> 
+        <timesToggled> _ => 0 </timesToggled> [structural]
 
-    rule [process-nop]: <k> nop => . ...</k> [structural]
+
+    rule [hit-black-pixel-dp]:
+        <k>blk(I:Int) => rotdp(1) ...</k>
+        <PP> _ => ExitedPP </PP> //roll back the program pointer
+        <exitedPP> ExitedPP:Coord </exitedPP>
+        requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 0)
+    rule [hit-black-pixel-c]:
+        <k>blk(I:Int) => rotcc(1) ...</k>
+        <PP> _ => ExitedPP </PP> //roll back the program pointer
+        <exitedPP> ExitedPP:Coord </exitedPP>
+        requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 1)
+    rule [hit-black-pixel-too-many]:
+        <k>blk(7) => stop ...</k>
 endmodule
 
 
@@ -630,9 +650,11 @@ module KPIET-SYNTAX
                     "dup"   |   "roll"  |   "innum" |
                     "inchar"|   "outnum"|   "outchar"
 
-                    | "TranslateInstruction" Colour Colour [strict, function]
-                    | "LookupInstruction" Int Int [strict, function]//[strict, function, functional] strict was casuing LLVM issues? Kinda need it though...
+                    | "TranslateInstruction" Colour Colour [strict]
+                    | "LookupInstruction" Int Int [strict, function]
                     | "nop"
+                    | "stop"
+                    | "blk" "(" Int ")"
 
     syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
                     |   "HueDifference" Hue Hue [function, functional]
