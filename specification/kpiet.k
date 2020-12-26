@@ -145,6 +145,7 @@ module KPIET
         <owner> M:Map </owner>
         //create a new block
         <blocks> ... (.Bag => <block> 
+        //<blocks> .Set => <block>
                 <id>BlockID</id>
                 <colour>OldColour</colour> 
                 <size>0</size>
@@ -219,8 +220,8 @@ module KPIET
             ... 
             <block> 
                 <id>BlockID</id> 
-                <colour>C:Colour </colour>
-                <size> Size:Int </size>
+                <colour>_ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(>), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1))  ... </transitions>
             </block>
             ...
@@ -235,8 +236,8 @@ module KPIET
             ...
             <block> 
                 <id>BlockID</id> 
-                <colour>C:Colour</colour>
-                <size>Size:Int </size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(>), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
             </block>
             ...
@@ -251,8 +252,8 @@ module KPIET
             ... 
             <block>
                 <id>BlockID</id>
-                <colour>C:Colour</colour>
-                <size>Size:Int</size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(v), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
             </block>
             ...
@@ -267,8 +268,8 @@ module KPIET
             ... 
             <block> 
                 <id>BlockID</id>
-                <colour>C:Colour</colour>
-                <size> Size:Int </size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(v), CC(<)) |-> (point(X2:Int,Y2:Int)  => point(X1,Y1) ) ... </transitions>
             </block>
             ...
@@ -283,8 +284,8 @@ module KPIET
             ... 
             <block>
                 <id>BlockID</id>
-                <colour>C:Colour</colour>
-                <size>Size:Int</size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(<), CC(<)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
             </block>
             ...
@@ -299,8 +300,8 @@ module KPIET
             ... 
             <block> 
                 <id>BlockID</id>
-                <colour>C:Colour</colour>
-                <size>Size:Int</size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(<), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
             </block>
             ...
@@ -315,8 +316,8 @@ module KPIET
             ... 
             <block>
                 <id>BlockID</id>
-                <colour>C:Colour</colour>
-                <size>Size:Int</size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(^), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
             </block>
         </blocks>
@@ -330,8 +331,8 @@ module KPIET
             ... 
             <block>
                 <id>BlockID</id>
-                <colour>C:Colour</colour>
-                <size>Size:Int</size>
+                <colour> _ </colour>
+                <size> _ </size>
                 <transitions> ... direction(DP(^), CC(>)) |-> (point(X2:Int,Y2:Int)  =>  point(X1,Y1) ) ...</transitions>
             </block>
             ...
@@ -349,7 +350,7 @@ module KPIET
             ... 
             <block>
                 <id>BlockID</id>
-                <colour>C:Colour</colour> 
+                <colour>_</colour> 
                 <size>Size:Int => Size+Int 1</size>
                 <transitions> //TODO: Is the reason that this won't update properly becuase Maps still care about order when being accessed like this?
                     direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
