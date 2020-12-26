@@ -16,8 +16,16 @@ module KPIET
 
         <program> .Map </program> //maps position to colour of the pixel there
         <owner> .Map </owner> //maps position to the block that owns it
-        <block> .Map </block> //stores a list of all the blocks that have been constructed so far. TODO: cache transitions
 
+        //stores all the blocks that have been constructed so far. 
+        <blocks> 
+            <block multiplicity = "*" type="Map">
+                <id> -1 </id>
+                <colour> color(black) </colour>
+                <size> -1 </size>
+                <transitions> .Map </transitions>
+            </block>    
+        </blocks> 
 
         //TODO:K doesn't like streams anymore
         //<input color="magenta" stream = "stdin"> .List </input>
@@ -104,7 +112,7 @@ module KPIET
     syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
 
   
-    syntax BlockDef ::= "block" "(" Colour "," Int ","  "(" Map ")" ")"
+    //syntax BlockDef ::= "block" "(" Colour "," Int ","  "(" Map ")" ")"
     syntax DirectionPointer ::= "DP" "(" "^" ")" |"DP" "(" "v" ")" |"DP" "(" "<" ")"|"DP" "(" ">" ")"
     syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
 
@@ -122,7 +130,7 @@ module KPIET
         <exitedPP> _ => OldPP </exitedPP>
         <program> ... NewPP |-> NewColour:Colour ...</program>       
         <owner> ... OldPP |-> OldBlockID:Int ... </owner>
-        <block> ... OldBlockID |-> block( OldColour:Colour, _Size:Int, ( direction(D,C)|-> NewPP:Coord _ ) ) ...</block>
+        <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
         <DP>D:DirectionPointer</DP>
         <CC>C:CodelChooser</CC>
         <blockworkspace> .List </blockworkspace>
@@ -135,18 +143,23 @@ module KPIET
         <PP> OldPP:Coord </PP>
         <program> ... OldPP |-> OldColour:Colour ...</program>  
         <owner> M:Map </owner>
-        <block>... 
-        .Map => BlockID |-> block(OldColour, 0, ( 
-            direction(DP(>), CC(>)) |-> OldPP 
-            direction(DP(>), CC(<)) |-> OldPP 
-            direction(DP(v), CC(>)) |-> OldPP 
-            direction(DP(v), CC(<)) |-> OldPP
-            direction(DP(<), CC(>)) |-> OldPP 
-            direction(DP(<), CC(<)) |-> OldPP
-            direction(DP(^), CC(>)) |-> OldPP 
-            direction(DP(^), CC(<)) |-> OldPP
-        ))     
-        </block> 
+        //create a new block
+        <blocks> ... (.Bag => <block> 
+                <id>BlockID</id>
+                <colour>OldColour</colour> 
+                <size>0</size>
+                <transitions> 
+                    direction(DP(>), CC(>)) |-> OldPP 
+                    direction(DP(>), CC(<)) |-> OldPP 
+                    direction(DP(v), CC(>)) |-> OldPP 
+                    direction(DP(v), CC(<)) |-> OldPP
+                    direction(DP(<), CC(>)) |-> OldPP 
+                    direction(DP(<), CC(<)) |-> OldPP
+                    direction(DP(^), CC(>)) |-> OldPP 
+                    direction(DP(^), CC(<)) |-> OldPP
+                </transitions>  
+            </block>) ...
+        </blocks> 
         <nextBlockID> BlockID:Int => BlockID +Int 1 </nextBlockID>
         //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
         requires notBool(OldPP in_keys (M))
@@ -161,7 +174,11 @@ module KPIET
          ...</k>
         <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
         <owner> Owner:Map </owner>
-        <block> ... BlockID |-> block(MainColour:Colour, _ , (_)) ... </block>
+        <blocks> 
+            ... 
+            <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
+            ...
+        </blocks>
         <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
         requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
@@ -172,7 +189,11 @@ module KPIET
     rule [build-block-wrong-pixel-wrong-colour]: 
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
         <program> ... Position |-> OtherColour:Colour ... </program>
-        <block>... BlockID |-> block(MainColour:Colour, _ , (_))...</block>
+        <blocks> 
+            ... 
+            <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
+            ...
+        </blocks>
         requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
           
 
@@ -187,60 +208,134 @@ module KPIET
             orBool notBool (Position in_keys(Program))// The current position is out of bounds
             orBool Position in(B) // the current position is already mapped
 
+
+
+    //TODO:the following rules are all very similair, can we fold them together somehow?
     //<blockworkspace> contains all the pixels in the current block we are building. 
     //So we should deplete thet cell until it is empty, to create the block
     rule [build-block-rightright]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(>), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block> 
+                <id>BlockID</id> 
+                <colour>C:Colour </colour>
+                <size> Size:Int </size>
+                <transitions> ... direction(DP(>), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1))  ... </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X1 >Int X2) 
             orBool (X1 ==Int X2 andBool Y1 >Int Y2)  //The new point is the new right-bottom pixel in the block
 
     rule [build-block-rightleft]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(>), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(>), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ...
+            <block> 
+                <id>BlockID</id> 
+                <colour>C:Colour</colour>
+                <size>Size:Int </size>
+                <transitions> ... direction(DP(>), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X1 >Int X2) 
             orBool (X1 ==Int X2 andBool  Y2 >Int Y1 )  //The new point is the new right-top pixel in the block
 
     rule [build-block-downright]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(v), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(v), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block>
+                <id>BlockID</id>
+                <colour>C:Colour</colour>
+                <size>Size:Int</size>
+                <transitions> ... direction(DP(v), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (Y2 >Int Y1) 
             orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new bottom-left pixel in the block
 
     rule [build-block-downleft]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(v), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(v), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block> 
+                <id>BlockID</id>
+                <colour>C:Colour</colour>
+                <size> Size:Int </size>
+                <transitions> ... direction(DP(v), CC(<)) |-> (point(X2:Int,Y2:Int)  => point(X1,Y1) ) ... </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (Y2 >Int Y1) 
             orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new bottom-right pixel in the block
 
     rule [build-block-leftleft]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(<), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(<), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block>
+                <id>BlockID</id>
+                <colour>C:Colour</colour>
+                <size>Size:Int</size>
+                <transitions> ... direction(DP(<), CC(<)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X2 >Int X1) 
             orBool (X1 ==Int X2 andBool Y1 >Int Y2 )  //The new point is the new left-bottom pixel in the block
 
     rule [build-block-leftright]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(<), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(<), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block> 
+                <id>BlockID</id>
+                <colour>C:Colour</colour>
+                <size>Size:Int</size>
+                <transitions> ... direction(DP(<), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (X2 >Int X1) 
             orBool (X1 ==Int X2 andBool Y2 >Int Y1 )  //The new point is the new left-top pixel in the block
 
     rule [build-block-upleft]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(<)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(<)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block>
+                <id>BlockID</id>
+                <colour>C:Colour</colour>
+                <size>Size:Int</size>
+                <transitions> ... direction(DP(^), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
+            </block>
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (Y2 >Int Y1) 
             orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new top-left pixel in the block
 
     rule [build-block-upright]: 
         <k> build (BlockID:Int)  ...</k>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( direction(DP(^), CC(>)) |-> point(X2:Int,Y2:Int) )) => block(C , Size , ( direction(DP(^), CC(>)) |-> point(X1,Y1) ))) ...</block>
+        <blocks> 
+            ... 
+            <block>
+                <id>BlockID</id>
+                <colour>C:Colour</colour>
+                <size>Size:Int</size>
+                <transitions> ... direction(DP(^), CC(>)) |-> (point(X2:Int,Y2:Int)  =>  point(X1,Y1) ) ...</transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
         requires (Y2 >Int Y1) 
             orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new top-right pixel in the block
@@ -250,26 +345,25 @@ module KPIET
     rule [build-block-finish-up]: 
         <k> build (BlockID:Int) ...</k>
         <owner> ... .Map => point(X,Y) |-> BlockID</owner>
-        <block> ... BlockID |-> (block(C:Colour , Size:Int , ( 
-            direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
-            direction(DP(>), CC(<)) |-> point(RLX:Int, RLY:Int)  
-            direction(DP(v), CC(>)) |-> point(DRX:Int, DRY:Int)  
-            direction(DP(v), CC(<)) |-> point(DLX:Int, DLY:Int) 
-            direction(DP(<), CC(>)) |-> point(LRX:Int, LRY:Int) 
-            direction(DP(<), CC(<)) |-> point(LLX:Int, LLY:Int) 
-            direction(DP(^), CC(>)) |-> point(URX:Int, URY:Int)  
-            direction(DP(^), CC(<)) |-> point(ULX:Int, ULY:Int) 
-             )) 
-            => block(C , Size +Int 1, ( //TODO: Is the reason that this won't update properly becuase Maps still care about order when being accessed like this?
-                direction(DP(>), CC(>)) |-> point(RRX, RRY) 
-                direction(DP(>), CC(<)) |-> point(RLX, RLY)  
-                direction(DP(v), CC(>)) |-> point(DRX, DRY)  
-                direction(DP(v), CC(<)) |-> point(DLX, DLY) 
-                direction(DP(<), CC(>)) |-> point(LRX, LRY) 
-                direction(DP(<), CC(<)) |-> point(LLX, LLY) 
-                direction(DP(^), CC(>)) |-> point(URX, URY)  
-                direction(DP(^), CC(<)) |-> point(ULX, ULY) 
-            ))) ...</block>
+        <blocks> 
+            ... 
+            <block>
+                <id>BlockID</id>
+                <colour>C:Colour</colour> 
+                <size>Size:Int => Size+Int 1</size>
+                <transitions> //TODO: Is the reason that this won't update properly becuase Maps still care about order when being accessed like this?
+                    direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
+                    direction(DP(>), CC(<)) |-> point(RLX:Int, RLY:Int)  
+                    direction(DP(v), CC(>)) |-> point(DRX:Int, DRY:Int)  
+                    direction(DP(v), CC(<)) |-> point(DLX:Int, DLY:Int) 
+                    direction(DP(<), CC(>)) |-> point(LRX:Int, LRY:Int) 
+                    direction(DP(<), CC(<)) |-> point(LLX:Int, LLY:Int) 
+                    direction(DP(^), CC(>)) |-> point(URX:Int, URY:Int)  
+                    direction(DP(^), CC(<)) |-> point(ULX:Int, ULY:Int) 
+                </transitions>
+            </block>
+            ...
+        </blocks>
         <blockworkspace> ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
         requires    notBool ((X >Int RRX)  orBool (X ==Int RRX andBool Y >Int RRY)) //not the right-bottom
             andBool notBool ((X >Int RLX)  orBool (X ==Int RLX andBool RLY >Int Y)) //not the right-top
