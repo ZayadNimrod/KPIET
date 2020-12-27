@@ -34,12 +34,10 @@ module KPIET
         <timesToggled> 0 </timesToggled>
 
        
-        //TODO:K doesn't like streams anymore
-        //<input color="magenta" stream = "stdin"> .List </input>
-        //<output color="Orchid" stream = "stdout"> .List </output>
+       
+        <input color="magenta" stream = "stdin"> .List </input>
+        <output color="Orchid" stream = "stdout"> .List </output>
 
-        <input color="magenta"> .List </input>
-        <output color="Orchid"> .List </output>
 
         //used when building up <program>
         <buildingx>-1</buildingx>
@@ -708,6 +706,7 @@ module KPIET-SYNTAX
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
                         "x000000"   | "xffffff"  | Id  //matching Id exists so that if we pass a hexcode that is not matched to a spec colour we can handle it as white
                         //TODO we can use a Regex here instead of Id, according to the K documentation.
+                        //Does that even give us any advantages? That just specifies the form a hexcode will take, but at that point you're just accepting/rejecting the output of the bitmapper.
 
 
 endmodule
