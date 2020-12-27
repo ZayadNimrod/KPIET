@@ -56,10 +56,6 @@ module KPIET
     //####
     // RELATED TO PARSING PROGRAM INTO <program> CELL
     //####
-
-    
-  
-
    
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other   
     syntax Colour ::= "TranslateHexcode" Hexcode [function]
@@ -70,7 +66,6 @@ module KPIET
     
     rule [finished-parsing]:
         <k>.Lines => step </k>
-        //<program> point( 0 , 0 ) |-> C </program>
 
     rule [parse-next-line]: 
         <k>L:Line ; Ls:Lines => L </k>   
@@ -115,19 +110,29 @@ module KPIET
         <k> step => TranslateInstruction OldColour NewColour ... </k>
         <PP> OldPP:Coord => NewPP +Coord DPToOffset(D)</PP> 
         <exitedPP> _ => OldPP </exitedPP>
-        <program> ... NewPP |-> NewColour:Colour ...</program>       
+        <program> ... (NewPP +Coord DPToOffset(D)) |-> NewColour:Colour ...</program>       
         <owner> ... OldPP |-> OldBlockID:Int ... </owner>
         <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
         <DP>D:DirectionPointer</DP>
         <CC>C:CodelChooser</CC>
         <blockworkspace> .List </blockworkspace>
 
-
+     rule [next-step-out-of-bounds]:
+        <k> step => TranslateInstruction OldColour color(black) ... </k> //going out of bounds is treated like walking into a black pixel
+        <PP> OldPP:Coord => NewPP +Coord DPToOffset(D)</PP> 
+        <exitedPP> _ => OldPP </exitedPP>
+        <program> Program:Map </program>  //out of bounds, so it is unmapped  
+        <owner> ... OldPP |-> OldBlockID:Int ... </owner>
+        <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
+        <DP>D:DirectionPointer</DP>
+        <CC>C:CodelChooser</CC>
+        <blockworkspace> .List </blockworkspace>
+            requires notBool ((NewPP +Coord DPToOffset(D)) in_keys (Program))
  
     rule [next-step-no-mapping]:
         <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID)  ~> step... </k>
         <PP> OldPP:Coord </PP>
-        <program> ... OldPP |-> OldColour:Colour ...</program>  
+        <program> ... OldPP |-> OldColour:Colour ...</program>  //this pixel is in bounds
         <owner> M:Map </owner>
         //create a new block
         <blocks> ... (.Bag => <block> 
@@ -377,8 +382,8 @@ module KPIET
             andBool notBool ((URY >Int Y)  orBool (Y ==Int URY andBool X >Int URX)) //not the top-right
             andBool notBool ((ULY >Int Y)  orBool (Y ==Int ULY andBool ULX >Int X)) //not the top-left
 
-    rule [build-block-finished]: //we have finished constructing the block, so now we step
-        <k> build(_) => step ...</k>
+    rule [build-block-finished]: //we have finished constructing the block
+        <k> build(_) => . ...</k>
         <blockworkspace>.List</blockworkspace> 
 
 
@@ -433,7 +438,9 @@ module KPIET
     //When a white pixel is involved in the transition, no instruction is exectuted
     rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => nop //moving from white to another pixel results in NOP
     rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => nop //moving to  white from another pixel results in NOP
-    rule [translate-instruction-from-black]:    TranslateInstruction color(black) _   => stop //this should never occur
+    rule [translate-instruction-from-black]:     <k>TranslateInstruction color(black) _  => stop ...</k>
+        <timesToggled> TT:Int => TT +Int 1</timesToggled>
+        <output> ... .List => ListItem("The impossible occured.") </output> //this should never occur
     rule [translate-instruction-to-black]:      
         <k>TranslateInstruction _ color(black)   => blk(TT) ...</k>
         <timesToggled> TT:Int => TT +Int 1</timesToggled>
@@ -615,22 +622,25 @@ module KPIET
   
     //a NOP occurs after every instruction. Thus, we can reset the timesToggled counter, becuase we did not hit a black pixel
     rule [process-nop]: 
-        <k> nop => . ...</k> 
+        <k> nop => step ...</k> 
         <timesToggled> _ => 0 </timesToggled> [structural]
 
 
     rule [hit-black-pixel-dp]:
-        <k>blk(I:Int) => rotdp(1) ...</k>
+        <k>blk(I:Int) => rotdp(1) ~> step ...</k>
         <PP> _ => ExitedPP </PP> //roll back the program pointer
         <exitedPP> ExitedPP:Coord </exitedPP>
-        requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 0)
-    rule [hit-black-pixel-c]:
-        <k>blk(I:Int) => rotcc(1) ...</k>
-        <PP> _ => ExitedPP </PP> //roll back the program pointer
-        <exitedPP> ExitedPP:Coord </exitedPP>
+        <output> ... .List => ListItem("bounced dp") </output>
         requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 1)
+    rule [hit-black-pixel-c]:
+        <k>blk(I:Int) => rotcc(1) ~> step ...</k>
+        <PP> _ => ExitedPP </PP> //roll back the program pointer
+        <exitedPP> ExitedPP:Coord </exitedPP>
+        <output> ... .List => ListItem("bounced cc") </output>
+        requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 0)
     rule [hit-black-pixel-too-many]:
         <k>blk(7) => stop ...</k>
+        <output> ... .List => ListItem("stuck") </output>
 endmodule
 
 
