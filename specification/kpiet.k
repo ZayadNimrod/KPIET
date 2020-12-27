@@ -529,10 +529,15 @@ module KPIET
     
     //mod: Pops the top two values off the stack, calculates the second top value modulo the top value, and pushes the result back on the stack. The result has the same sign as the divisor (the top value). If the top value is zero, this is a divide by zero error, which is handled as an implementation-dependent error, though simply ignoring the command is recommended. (See note below.)
     rule [instruction-modulo]: 
-                            <k> mod =>  nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> //TODO: ignoring a div by zero  -i.e use "when"-rather than locking up
                             //TODO: make sure sign is the same as the divisor
-    
+                            <k> mod =>  nop</k>
+                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> 
+                            requires notBool (I2 ==Int 0) 
+     rule [instruction-modulo-zero]: // ignoring a mod by zero 
+                            <k> mod =>  nop</k>
+                            <stack> ListItem(0) ListItem(_Int)... </stack> 
+                            
+                            //TODO: make sure sign is the same as the divisor
     //not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
     rule [instruction-not-nonzero]: 
                             <k> not => nop</k>
