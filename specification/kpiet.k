@@ -95,7 +95,6 @@ module KPIET
     // PATHING
     // ####
     
-    //TODO: black border cells
     syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
     syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
 
@@ -490,12 +489,19 @@ module KPIET
     rule [instruction-resolution-out(char)]:LookupInstruction 2 4 => outchar
  
     //push: Pushes the value (size) of the colour block just exited on to the stack. Note that values of colour blocks are not automatically pushed on to the stack - this push operation must be explicitly carried out.
-    rule [instruction-push]: <k> push => nop </k>  //TODO get the size of the current block
-    
+    rule [instruction-push]:<k> push => nop </k>  
+                            <exitedPP>PP:Coord </exitedPP>
+                            <owner> ... PP |-> ID:Int ...</owner>
+                            <blocks> 
+                            ...
+                                <block> <id> ID </id><colour>_</colour><size> I:Int</size><transitions>_</transitions></block>
+                            ...
+                            </blocks>
+                            <stack> .List => ListItem(I) ... </stack>
     //pop: Pops the top value off the stack and discards it.
     rule [instruction-pop]: 
                             <k> pop =>  nop</k>
-                            <stack> ... ListItem(_) => .List  </stack>
+                            <stack>  ListItem(_) => .List ...  </stack>
 
     //add: Pops the top two values off the stack, adds them, and pushes the result back on the stack.
     rule [instruction-add]: 
