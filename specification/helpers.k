@@ -1,10 +1,10 @@
 module HELPERS
-    //everythign here is [structural], it's all just helper functions rather than actual execution steps
+    //everything here is [structural], it's all just helper functions rather than actual execution steps
     imports DOMAINS-SYNTAX
     imports DOMAINS
     imports KPIET-SYNTAX
 
-    syntax Bool ::= Colour "==Colour" Colour [function, functional] //refuses to be [strict] as well
+    syntax Bool ::= Colour "==Colour" Colour [strict, function] 
     rule color(black) ==Colour color(white) => false [structural]
     rule color(white) ==Colour color(black) => false [structural]
     rule color(black) ==Colour color(black) => true [structural]
@@ -19,7 +19,7 @@ module HELPERS
 
 
 
-    syntax Bool ::= Lightness "==Lightness" Lightness [function, functional] //refuses to be [strict]
+    syntax Bool ::= Lightness "==Lightness" Lightness [strict, function] 
     rule light ==Lightness light => true    [structural]
     rule normal ==Lightness normal => true  [structural]
     rule dark ==Lightness dark => true      [structural]

@@ -535,9 +535,9 @@ module KPIET
                             requires notBool (I2 ==Int 0) 
      rule [instruction-modulo-zero]: // ignoring a mod by zero 
                             <k> mod =>  nop</k>
-                            <stack> ListItem(0) ListItem(_Int)... </stack> 
-                            
-                            //TODO: make sure sign is the same as the divisor
+                            <stack> ListItem(0) ListItem(_Int)... </stack>
+
+
     //not: Replaces the top value of the stack with 0 if it is non-zero, and 1 if it is zero.
     rule [instruction-not-nonzero]: 
                             <k> not => nop</k>
@@ -626,7 +626,7 @@ module KPIET
 
 
    
-    syntax State ::= "PrintChar" "(" String ")" //[strict] LLVM really hates [strict] tags with the new K version...
+    syntax State ::= "PrintChar" "(" String ")" [strict]
     rule 
                             <k>PrintChar (S:String) => nop ...</k> 
                             <output> ... .List => ListItem(S)</output> [structural]
