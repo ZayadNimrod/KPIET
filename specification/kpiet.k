@@ -521,7 +521,11 @@ module KPIET
     //divide: Pops the top two values off the stack, calculates the integer division of the second top value by the top value, and pushes the result back on the stack. If a divide by zero occurs, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
     rule [instruction-divide]: 
                             <k> div =>  nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 /Int I1) ... </stack> //TODO: ignoring a div by zero rather than locking up
+                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 /Int I1) ... </stack> 
+                            requires notBool (I1 ==Int 0)
+    rule [instruction-divide-by-zero]: 
+                            <k> div =>  nop</k>
+                            <stack> ListItem(0) ListItem(_:Int) ... </stack> //ignoring a div by zero rather than locking up
     
     //mod: Pops the top two values off the stack, calculates the second top value modulo the top value, and pushes the result back on the stack. The result has the same sign as the divisor (the top value). If the top value is zero, this is a divide by zero error, which is handled as an implementation-dependent error, though simply ignoring the command is recommended. (See note below.)
     rule [instruction-modulo]: 
