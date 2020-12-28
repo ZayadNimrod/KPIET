@@ -90,9 +90,7 @@ module HELPERS
     rule DPToOffset (DP(^)) => point(0,-1)  [structural]
 
 
-    syntax String ::= "IntToChar" "(" Int ")" [strict, function] 
-    //rule IntToChar(Input:Int) => Id2String(((Input %Int 256) +Int 256) %Int 256) [structural]
-    //TODO return to the above
+
 
 
     syntax Int ::= "abs" "("Int")" [strict, function]

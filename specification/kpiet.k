@@ -606,10 +606,19 @@ module KPIET
                             <k>innum => nop</k>
                             <stack> .List => ListItem(I) ... </stack>
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
+
+     rule [instruction-in-number-no-input]: 
+                            <k>innum => nop</k>                           
+                            <input> .List </input> //No input, ignore
+
     rule [instruction-incharacter]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(S) ... </stack>
-                            <input> ListItem(S:String) => .List ...</input>  //TODO: specification is not too clear, but most implementations get one character and convert it to an integer
+                            <input> ListItem(S:String) => .List ...</input>  //TODO: specification is not too clear, but most implementations get one character and convert it to an ascii integer
+    rule [instruction-incharacter-no-input]: 
+                            <k>inchar => nop</k>
+                            <input> .List </input>  //no input on STDIN, so ignore
+
 
 
     //out: Pops the top value off the stack and prints it to STDOUT as either a number or character, depending on the particular incarnation of this command.
@@ -618,7 +627,7 @@ module KPIET
                             <stack>ListItem(Value:Int) => .List ...</stack>
                             <output> ... .List => ListItem(Value)</output>
     rule [instruction-out-character]: 
-                            <k> outnum => PrintChar(IntToChar(Value))</k>
+                            <k> outnum => PrintChar(chrChar(Value))</k>
                             <stack>ListItem(Value:Int) => .List ...</stack>
                         
 
