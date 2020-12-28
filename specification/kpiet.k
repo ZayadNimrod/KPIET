@@ -613,8 +613,8 @@ module KPIET
 
     rule [instruction-incharacter]: 
                             <k>inchar => nop</k>
-                            <stack> .List => ListItem(S) ... </stack>
-                            <input> ListItem(S:String) => .List ...</input>  //TODO: specification is not too clear, but most implementations get one character and convert it to an ascii integer
+                            <stack> .List => ListItem(ordChar(S)) ... </stack>
+                            <input> ListItem(S:String) => .List ...</input>  //specification is not too clear, but most implementations get one character and convert it to an ascii integer
     rule [instruction-incharacter-no-input]: 
                             <k>inchar => nop</k>
                             <input> .List </input>  //no input on STDIN, so ignore
