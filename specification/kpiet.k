@@ -607,17 +607,17 @@ module KPIET
                             <stack> .List => ListItem(I) ... </stack>
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
 
-     rule [instruction-in-number-no-input]: 
-                            <k>innum => nop</k>                           
-                            <input> .List </input> //No input, ignore
+    //rule [instruction-in-number-no-input]: 
+    //                        <k>innum => nop</k>                           
+    //                        <input> .List </input> //No input, ignore
 
     rule [instruction-incharacter]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(ordChar(S)) ... </stack>
                             <input> ListItem(S:String) => .List ...</input>  //specification is not too clear, but most implementations get one character and convert it to an ascii integer
-    rule [instruction-incharacter-no-input]: 
-                            <k>inchar => nop</k>
-                            <input> .List </input>  //no input on STDIN, so ignore
+    //rule [instruction-incharacter-no-input]: 
+    //                        <k>inchar => nop</k>
+    //                        <input> .List </input>  //no input on STDIN, so ignore
 
 
 
