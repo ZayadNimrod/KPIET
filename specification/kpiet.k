@@ -486,8 +486,22 @@ module KPIET
     rule [instruction-resolution-out(num)]: LookupInstruction 1 4 => outnum
     rule [instruction-resolution-out(char)]:LookupInstruction 2 4 => outchar
  
+
+    //Any operations which cannot be performed (such as popping values when not enough are on the stack) are simply ignored, and processing continues with the next command. 
+
+    rule [ignore-one-arg-instruction]:
+                            <k> I:Instruction1Arg => nop </k>
+                            <stack> S:List </stack>
+                            requires 1 >Int size(S)
+
+    rule [ignore-two-arg-instruction]:
+                            <k> I:Instruction2Arg => nop </k>
+                            <stack> S:List </stack>
+                            requires 2 >Int size(S)
+
     //push: Pushes the value (size) of the colour block just exited on to the stack. Note that values of colour blocks are not automatically pushed on to the stack - this push operation must be explicitly carried out.
-    rule [instruction-push]:<k> push => nop </k>  
+    rule [instruction-push]:
+                            <k> push => nop </k>  
                             <exitedPP>PP:Coord </exitedPP>
                             <owner> ... PP |-> ID:Int ...</owner>
                             <blocks> 
@@ -496,6 +510,9 @@ module KPIET
                             ...
                             </blocks>
                             <stack> .List => ListItem(I) ... </stack>
+                            <output> ... .List => ListItem ("PUSH") </output>
+
+
     //pop: Pops the top value off the stack and discards it.
     rule [instruction-pop]: 
                             <k> pop =>  nop</k>
@@ -549,19 +566,25 @@ module KPIET
     rule [instruction-greater-top-greater]: 
                             <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
+                            <output> ... .List => ListItem ("GR") </output>
+
                             when Top >Int Bottom
     rule [instruction-greater-to-not-greater]: 
                             <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
+                            <output> ... .List => ListItem ("LT") </output>
+
                             when notBool(Top >Int Bottom)
 
 
     //pointer: Pops the top value off the stack and rotates the DP clockwise that many steps (anticlockwise if negative).
     rule [instruction-pointer]:
                             <k> ptr =>  rotdp(abs(Steps)) ~> nop ...</k>
-                            <stack>ListItem(Steps:Int) => .List ... </stack>        
+                            <stack>ListItem(Steps:Int) => .List ... </stack> 
+                            <output> ... .List => ListItem ("PTR") </output>
 
-        syntax State::= "rotdp" "(" Int ")" [strict]
+
+        syntax State ::= "rotdp" "(" Int ")" [strict]
 
         rule    <k>rotdp(0) => . ...</k>
         rule    <k>rotdp(X:Int) => rotdp(X -Int 1) ...</k>
@@ -580,9 +603,11 @@ module KPIET
     rule [instruction-switch]: 
                             <k> switch =>  rotcc(abs(C)) ~> nop ...</k>
                             <stack>ListItem(C:Int) => .List ... </stack> 
+                            <output> ... .List => ListItem ("SWITCH") </output>
 
 
-        syntax State::= "rotcc" "(" Int ")" [strict]
+
+        syntax State ::= "rotcc" "(" Int ")" [strict]
         rule    <k>rotcc(0) => . ...</k>
         rule    <k>rotcc(X:Int) => rotcc(X -Int 1) ...</k>
                 <CC>CC(>) => CC(<)</CC>
@@ -594,12 +619,32 @@ module KPIET
     rule [instruction-duplicate]: 
                             <k> dup => nop</k>
                             <stack>ListItem(Value:Int) => ListItem(Value) ListItem(Value) ...</stack>
+                            <output> ... .List => ListItem ("DUP") </output>
 
     //roll: Pops the top two values off the stack and "rolls" the remaining stack entries to a depth equal to the second value popped, by a number of rolls equal to the first value popped. A single roll to depth n is defined as burying the top value on the stack n deep and bringing all values above it up by 1 place. A negative number of rolls rolls in the opposite direction. A negative depth is an error and the command is ignored. If a roll is greater than an implementation-dependent maximum stack depth, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
     rule [instruction-roll]: 
-                            <k>roll => nop</k>
-        //<stack> </stack> ///TODO: AAAAAAA how to even begin
+                            <k>roll => rollby(Depth, NumRolls)</k>
+                            <stack> ListItem(NumRolls:Int) ListItem(Depth:Int) => .List ... </stack>
+                                requires Depth >=Int 0
+    
+    
+    
+    rule                    <k>roll => nop</k>
+                            <stack> ListItem(_:Int) ListItem(Depth:Int) => .List ... </stack>
+                                requires 0 >Int Depth //negative depth is an error and ignored
 
+        
+            syntax State ::= "rollby" "(" Int "," Int ")" [strict]
+            rule    <k>rollby(_:Int, 0) => nop</k>
+
+
+            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> //TODO do the actual roll operation
+
+                        requires NumRolls >Int 0
+
+            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> //TODO do the actual roll operation
+                        requires 0 >Int NumRolls
+            
 
     //in: Reads a value from STDIN as either a number or character, depending on the particular incarnation of this command and pushes it on to the stack. If no input is waiting on STDIN, this is an error and the command is ignored. If an integer read does not receive an integer value, this is an error and the command is ignored.
     rule [instruction-in-number]: 
@@ -607,17 +652,12 @@ module KPIET
                             <stack> .List => ListItem(I) ... </stack>
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
 
-    //rule [instruction-in-number-no-input]: 
-    //                        <k>innum => nop</k>                           
-    //                        <input> .List </input> //No input, ignore
 
     rule [instruction-incharacter]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(ordChar(S)) ... </stack>
                             <input> ListItem(S:String) => .List ...</input>  //specification is not too clear, but most implementations get one character and convert it to an ascii integer
-    //rule [instruction-incharacter-no-input]: 
-    //                        <k>inchar => nop</k>
-    //                        <input> .List </input>  //no input on STDIN, so ignore
+
 
 
 
@@ -625,7 +665,7 @@ module KPIET
     rule [instruction-out-number]: 
                             <k> outnum => nop</k>
                             <stack>ListItem(Value:Int) => .List ...</stack>
-                            <output> ... .List => ListItem(Value)</output>
+                            <output> ... .List => ListItem ("OUTNUM") ListItem(Value)</output>
     rule [instruction-out-character]: 
                             <k> outnum => PrintChar(chrChar(Value))</k>
                             <stack>ListItem(Value:Int) => .List ...</stack>
@@ -636,7 +676,7 @@ module KPIET
     syntax State ::= "PrintChar" "(" String ")" [strict]
     rule 
                             <k>PrintChar (S:String) => nop ...</k> 
-                            <output> ... .List => ListItem(S)</output> [structural]
+                            <output> ... .List => ListItem ("OUTCHAR") ListItem(S)</output> [structural]
 
 
 	
@@ -691,18 +731,28 @@ module KPIET-SYNTAX
     syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
 
 
-    syntax Instruction ::=          "push"  |   "pop"   |
-                    "add"   |   "sub"   |   "mult"  |
-                    "div"   |   "mod"   |   "not"   |
-                    "great" |   "ptr"   |   "switch"|
-                    "dup"   |   "roll"  |   "innum" |
-                    "inchar"|   "outnum"|   "outchar"
+    syntax Instruction ::=  VMInstruction
+                        | "TranslateInstruction" Colour Colour [strict]
+                        | "LookupInstruction" Int Int [strict, function]
+                        | "nop"
+                        | "stop"
+                        | "blk" "(" Int ")"
 
-                    | "TranslateInstruction" Colour Colour [strict]
-                    | "LookupInstruction" Int Int [strict, function]
-                    | "nop"
-                    | "stop"
-                    | "blk" "(" Int ")"
+
+    syntax VMInstruction ::=  Instruction1Arg | Instruction2Arg  | "push" | "innum" | "inchar"
+    
+    syntax Instruction1Arg ::=   "pop"   | 
+                                 "not"   |   
+                                 "ptr"   |   
+                                 "switch"|
+                                 "dup"   |  
+                                 "outnum"|   
+                                 "outchar"
+
+
+    syntax Instruction2Arg ::= "add"   |   "sub"   |   "mult"  |
+                    "div"   |   "mod"   |  "great" | "roll"  
+
 
     syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
                     |   "HueDifference" Hue Hue [function, functional]
