@@ -689,7 +689,7 @@ module KPIET
     rule [process-nop]: 
         <k> nop => step ...</k> 
         <PP>P:Coord</PP>
-        <output> ... .List => ListItem (P) </output>
+        <log> ... .List => ListItem (P) </log>
         <timesToggled> _ => 0 </timesToggled> //[structural]
 
 
