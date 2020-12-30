@@ -482,20 +482,20 @@ module KPIET
     rule [instruction-resolution-duplicate]:LookupInstruction 0 4 => dup
     rule [instruction-resolution-roll]:     LookupInstruction 1 4 => roll
     rule [instruction-resolution-in(num)]:  LookupInstruction 2 4 => innum
-    rule [instruction-resolution-in(char)]: LookupInstruction 0 4 => inchar
-    rule [instruction-resolution-out(num)]: LookupInstruction 1 4 => outnum
-    rule [instruction-resolution-out(char)]:LookupInstruction 2 4 => outchar
+    rule [instruction-resolution-in(char)]: LookupInstruction 0 5 => inchar
+    rule [instruction-resolution-out(num)]: LookupInstruction 1 5 => outnum
+    rule [instruction-resolution-out(char)]:LookupInstruction 2 5 => outchar
  
 
     //Any operations which cannot be performed (such as popping values when not enough are on the stack) are simply ignored, and processing continues with the next command. 
 
     rule [ignore-one-arg-instruction]:
-                            <k> I:Instruction1Arg => nop </k>
+                            <k> _:Instruction1Arg => nop </k>
                             <stack> S:List </stack>
                             requires 1 >Int size(S)
 
     rule [ignore-two-arg-instruction]:
-                            <k> I:Instruction2Arg => nop </k>
+                            <k> _:Instruction2Arg => nop </k>
                             <stack> S:List </stack>
                             requires 2 >Int size(S)
 
