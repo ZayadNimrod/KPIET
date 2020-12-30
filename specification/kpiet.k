@@ -58,7 +58,6 @@ module KPIET
     //in our input, we can recieve hex, but we want to work on colour indices. Becuase of this, we want to translate one to the other   
     syntax Colour ::= "TranslateHexcode" Hexcode [function]
 
-
     //get next pixel, convert to colour, map to its location, go to next pixel
     rule H:Hexcode => TranslateHexcode H     
     
@@ -677,7 +676,7 @@ module KPIET
                             <stack>ListItem(Value:Int) => .List ...</stack>
                             <output> ... .List => ListItem ("OUTNUM") ListItem(Value)</output>
     rule [instruction-out-character]: 
-                            <k> outnum => PrintChar(chrChar(Value))</k>
+                            <k> outchar => PrintChar(chrChar(Value))</k>
                             <stack>ListItem(Value:Int) => .List ...</stack>
                         
 

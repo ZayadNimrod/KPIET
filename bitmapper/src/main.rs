@@ -31,7 +31,7 @@ fn main() {
 
 
     for y in 0..height {
-        for x in 0..width - 1 {
+        for x in 0..width {
             let pixel = img.get_pixel(x, y);
             //decode the pixel to a hex
             if x != 0 {
