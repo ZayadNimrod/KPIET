@@ -404,7 +404,7 @@ module KPIET
     rule [translate-hexcode-encountered-hexcode-dark-red]:      TranslateHexcode xc00000 => color ( dark red )
     rule [translate-hexcode-encountered-hexcode-light-yellow]:  TranslateHexcode xffffc0 => color ( light yellow )
     rule [translate-hexcode-encountered-hexcode-normal-yellow]: TranslateHexcode xffff00 => color ( normal yellow )
-    rule [translate-hexcode-encountered-hexcode-dark-yellow]:   TranslateHexcode x00c000 => color ( dark yellow )
+    rule [translate-hexcode-encountered-hexcode-dark-yellow]:   TranslateHexcode xc0c000 => color ( dark yellow )
     rule [translate-hexcode-encountered-hexcode-light-green]:   TranslateHexcode xc0ffc0 => color ( light green )
     rule [translate-hexcode-encountered-hexcode-normal-green]:  TranslateHexcode x00ff00 => color ( normal green )
     rule [translate-hexcode-encountered-hexcode-dark-green]:    TranslateHexcode x00c000 => color ( dark green )
@@ -510,34 +510,40 @@ module KPIET
                             ...
                             </blocks>
                             <stack> .List => ListItem(I) ... </stack>
-                            <output> ... .List => ListItem ("PUSH") </output>
+                            <output> ... .List => ListItem ("PUSH,") </output>
 
 
     //pop: Pops the top value off the stack and discards it.
     rule [instruction-pop]: 
                             <k> pop =>  nop</k>
                             <stack>  ListItem(_) => .List ...  </stack>
+                            <output> ... .List => ListItem ("POP,") </output>
 
     //add: Pops the top two values off the stack, adds them, and pushes the result back on the stack.
     rule [instruction-add]: 
                             <k> add =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I1 +Int I2) ... </stack>
+                            <output> ... .List => ListItem ("ADD,") </output>
 
     //subtract: Pops the top two values off the stack, calculates the second top value minus the top value, and pushes the result back on the stack.
     rule [instruction-subtract]: 
                             <k> sub =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 -Int I1) ... </stack>
+                            <output> ... .List => ListItem ("SUB,") </output>
 
     //multiply: Pops the top two values off the stack, multiplies them, and pushes the result back on the stack.
     rule [instruction-multiply]: 
                             <k> mult =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 *Int I1) ... </stack>
+                            <output> ... .List => ListItem ("MULT,") </output>
 
     //divide: Pops the top two values off the stack, calculates the integer division of the second top value by the top value, and pushes the result back on the stack. If a divide by zero occurs, it is handled as an implementation-dependent error, though simply ignoring the command is recommended.
     rule [instruction-divide]: 
                             <k> div =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 /Int I1) ... </stack> 
+                             <output> ... .List => ListItem ("DIV,") </output>
                             requires notBool (I1 ==Int 0)
+                           
     rule [instruction-divide-by-zero]: 
                             <k> div =>  nop</k>
                             <stack> ListItem(0) ListItem(_:Int) ... </stack> //ignoring a div by zero rather than locking up
@@ -547,6 +553,7 @@ module KPIET
                             //TODO: make sure sign is the same as the divisor
                             <k> mod =>  nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> 
+                            <output> ... .List => ListItem ("MOD,") </output>
                             requires notBool (I2 ==Int 0) 
      rule [instruction-modulo-zero]: // ignoring a mod by zero 
                             <k> mod =>  nop</k>
@@ -557,6 +564,7 @@ module KPIET
     rule [instruction-not-nonzero]: 
                             <k> not => nop</k>
                             <stack> ListItem(I1:Int) => ListItem(0) ... </stack> 
+                            <output> ... .List => ListItem ("NOT,") </output>
                             when notBool(I1 ==Int 0)
     rule [instruction-not-zero]: 
                             <k> not => nop</k>
@@ -625,6 +633,7 @@ module KPIET
     rule [instruction-roll]: 
                             <k>roll => rollby(Depth, NumRolls)</k>
                             <stack> ListItem(NumRolls:Int) ListItem(Depth:Int) => .List ... </stack>
+                            <output> ... .List => ListItem ("ROLL,") </output>
                                 requires Depth >=Int 0
     
     
@@ -651,13 +660,14 @@ module KPIET
                             <k>innum => nop</k>
                             <stack> .List => ListItem(I) ... </stack>
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
+                            <output> ... .List => ListItem ("INNUM,") </output>
 
 
     rule [instruction-incharacter]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(ordChar(S)) ... </stack>
                             <input> ListItem(S:String) => .List ...</input>  //specification is not too clear, but most implementations get one character and convert it to an ascii integer
-
+                            <output> ... .List => ListItem ("INCHAR,") </output>
 
 
 
@@ -685,7 +695,9 @@ module KPIET
     //a NOP occurs after every instruction. Thus, we can reset the timesToggled counter, becuase we did not hit a black pixel
     rule [process-nop]: 
         <k> nop => step ...</k> 
-        <timesToggled> _ => 0 </timesToggled> [structural]
+        <PP>P:Coord</PP>
+        <output> ... .List => ListItem (P) </output>
+        <timesToggled> _ => 0 </timesToggled> //[structural]
 
 
     rule [hit-black-pixel-dp]:
@@ -758,7 +770,7 @@ module KPIET-SYNTAX
                     |   "HueDifference" Hue Hue [function, functional]
 
     syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
-                        "xffffc0"   | "xffff00" | "x00c000" | 
+                        "xffffc0"   | "xffff00" | "xc0c000" | 
                         "xc0ffc0"   | "x00ff00" | "x00c000" | 
                         "xc0ffff"   | "x00ffff" | "x00c0c0" |
                         "xc0c0ff"   | "x0000ff" | "x0000c0" |
