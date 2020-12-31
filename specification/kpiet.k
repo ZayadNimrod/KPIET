@@ -646,6 +646,9 @@ module KPIET
             syntax State ::= "rollby" "(" Int "," Int ")" [strict]
             rule    <k>rollby(_:Int, 0) => nop</k>
 
+            rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k>
+                    <stack> S:List </stack>
+                    requires (size(S) >Int Depth)
 
             rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> //TODO do the actual roll operation
 
