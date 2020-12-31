@@ -651,7 +651,7 @@ module KPIET
                         requires (size(S) >Int Depth)
 
             rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> //TODO do the actual roll operation
-                    <stack> S:List => (range(S, 1, size(S) -Int Depth -Int 1) range(S, 0, size(S) -Int 1) range(S, Depth +Int 1,0) ) </stack>
+                    <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
                         requires NumRolls >Int 0
 
             rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> //TODO do the actual roll operation
