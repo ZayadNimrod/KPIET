@@ -666,6 +666,14 @@ module KPIET
                             <stack> .List => ListItem(I) ... </stack>
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up                            
                             <log> ... .List => ListItem ("INNUM,") </log>
+
+                            <buf> .List </buf> //There is no input waiting in the buffer to parse, we can consume directly from stdin
+    rule [instruction-in-number-buf]: 
+                            <k>innum => nop</k>
+                            <stack> .List => ListItem(I) ... </stack>                       
+                            <log> ... .List => ListItem ("INNUM,") </log>
+
+                            <buf> ListItem(I:Int) => .List ...</buf> //TODO: ignore if not an int rather than locking up   
     
                         
 
@@ -673,15 +681,17 @@ module KPIET
     //TODO: character input does not work, ordChar does not like multichar strings, but newline is in the string!
 
     //TODO this is actually disgusting and is a workaround for how K ahndles inputting strings.
-
-
     rule [instruction-incharacter-general]: 
                             <k>inchar => nop</k>
-                            <stack> .List => ListItem(ordChar(substrString(S,0,0))) ... </stack>
-                            <input> ListItem(S:String) => ListItem(substrString(S,1,lengthString(S))) ...</input>  //take the first character of input                    
+                            <stack> .List => ListItem(ordChar(substrString(S,0,1))) ... </stack>
+                            <buf> ListItem(S:String) => ListItem(substrString(S,1,lengthString(S))) ...</buf>  //take the first character of input                    
                             <log> ... .List => ListItem ("INCHAR,") </log>
-                            requires lengthString(S) >Int 1
+                            //requires lengthString(S) >=Int 1
 
+    rule [instruction-incharacter-consume]: 
+                            <k>inchar</k>
+                            <input> ListItem(S:String) => .List  ...</input>  //take the first character of input                    
+                            <buf> .List => ListItem(S)</buf> //buffer was empty, so we refill it
 
     //out: Pops the top value off the stack and prints it to STDOUT as either a number or character, depending on the particular incarnation of this command.
     rule [instruction-out-number]: 
