@@ -37,6 +37,7 @@ module KPIET
        
         <input color="magenta" stream = "stdin"> .List </input>
         <output color="Orchid" stream = "stdout"> .List </output>
+        <buf> .List </buf> //this exists to support stdin becuase we cant mutate stdin cells other than consuming the whole string
 
         <log> .List </log>
 
@@ -60,31 +61,31 @@ module KPIET
     syntax Colour ::= "TranslateHexcode" Hexcode [function]
 
     //get next pixel, convert to colour, map to its location, go to next pixel
-    rule H:Hexcode => TranslateHexcode H     
+    rule H:Hexcode => TranslateHexcode H      [structural]
     
     rule [finished-parsing]:
-        <k>.Lines => step </k>
+        <k>.Lines => step </k>              
 
     rule [parse-next-line]: 
         <k>L:Line ; Ls:Lines => L </k>   
         <nextLines> . => Ls </nextLines>              
         <buildingx> _X:Int => -1 </buildingx>
-        <buildingy> Y:Int => Y +Int 1 </buildingy> 
+        <buildingy> Y:Int => Y +Int 1 </buildingy>  [structural]
 
     rule [parse-next-line-restore]:
         <k> .Line => Ls </k> 
-        <nextLines> Ls:Lines => .</nextLines>  
+        <nextLines> Ls:Lines => .</nextLines>  [structural]
 
     rule [parse-next-pixel]:      
         <k>P:Pixel  L:Line => P ~> L</k>
-        <buildingx> X:Int => X +Int 1 </buildingx> 
+        <buildingx> X:Int => X +Int 1 </buildingx> [structural]
 
     //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
     rule [place-pixel-in-map]:
         <k> C:Colour => . ...</k>
         <buildingx> X:Int </buildingx>
         <buildingy> Y:Int </buildingy>
-        <program> ... .Map => point(X,Y) |->  C ...</program>
+        <program> ... .Map => point(X,Y) |->  C ...</program> [structural]
 
 
     
@@ -663,16 +664,23 @@ module KPIET
     rule [instruction-in-number]: 
                             <k>innum => nop</k>
                             <stack> .List => ListItem(I) ... </stack>
-                            <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
+                            <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up                            
                             <log> ... .List => ListItem ("INNUM,") </log>
+    
+                        
+
 
     //TODO: character input does not work, ordChar does not like multichar strings, but newline is in the string!
-    rule [instruction-incharacter]: 
-                            <k>inchar => nop</k>
-                            <stack> .List => ListItem(ordChar(S)) ... </stack>
-                            <input> ListItem(S:String) => .List ...</input>  //specification is not too clear, but most implementations get one character and convert it to an ascii integer
-                            <log> ... .List => ListItem ("INCHAR,") </log>
 
+    //TODO this is actually disgusting and is a workaround for how K ahndles inputting strings.
+
+
+    rule [instruction-incharacter-general]: 
+                            <k>inchar => nop</k>
+                            <stack> .List => ListItem(ordChar(substrString(S,0,0))) ... </stack>
+                            <input> ListItem(S:String) => ListItem(substrString(S,1,lengthString(S))) ...</input>  //take the first character of input                    
+                            <log> ... .List => ListItem ("INCHAR,") </log>
+                            requires lengthString(S) >Int 1
 
 
     //out: Pops the top value off the stack and prints it to STDOUT as either a number or character, depending on the particular incarnation of this command.
