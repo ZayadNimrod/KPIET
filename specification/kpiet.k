@@ -666,7 +666,7 @@ module KPIET
                             <input> ListItem(I:Int) => .List ...</input> //TODO: ignore if not an int rather than locking up
                             <log> ... .List => ListItem ("INNUM,") </log>
 
-
+    //TODO: character input does not work, ordChar does not like multichar strings, but newline is in the string!
     rule [instruction-incharacter]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(ordChar(S)) ... </stack>
