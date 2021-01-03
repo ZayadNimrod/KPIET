@@ -647,16 +647,18 @@ module KPIET
             syntax State ::= "rollby" "(" Int "," Int ")" [strict]
             rule    <k>rollby(_:Int, 0) => nop</k>
 
-            rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k>
+            rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k> //ignore if depth too large
                     <stack> S:List </stack>
                         requires (size(S) >Int Depth)
 
-            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> //TODO do the actual roll operation
+            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> 
                     <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
                         requires NumRolls >Int 0
 
-            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> //TODO do the actual roll operation
-            //TODO: what does "rolls in the opposite direction" even *mean*?
+            // other (presumably correct) implementations take the value at [depth] and move it to the top of the stack, so that's what I'll do.
+            // I originall thought it meant taking the value at the top and moving it to [depth] from the *bottom* of the stack
+            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> 
+                    <stack> S:List => (range(S, Depth, size(S) -Int Depth -Int 1  )  range(S, 0, size(S) -Int Depth )  range(S, Depth +Int 1,0) ) </stack>
                         requires 0 >Int NumRolls
             
 
@@ -677,10 +679,7 @@ module KPIET
     
                         
 
-
-    //TODO: character input does not work, ordChar does not like multichar strings, but newline is in the string!
-
-    //TODO this is actually disgusting and is a workaround for how K ahndles inputting strings.
+    //TODO this is actually disgusting and is a workaround for how K handles inputting strings.
     rule [instruction-incharacter-general]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(ordChar(substrString(S,0,1))) ... </stack>
