@@ -434,8 +434,8 @@ module KPIET
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
     rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
     //When a white pixel is involved in the transition, no instruction is exectuted
-    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => nop //moving from white to another pixel results in NOP
-    rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => nop //moving to  white from another pixel results in NOP
+    rule [translate-instruction-from-white]:    TranslateInstruction color(white) _   => step //moving from white to another pixel results in no operation, but also does not reset the toggle counter
+    rule [translate-instruction-to-white]:      TranslateInstruction _ color(white)   => step //moving to  white from another pixel results in no operation as above
     rule [translate-instruction-from-black]:     <k>TranslateInstruction color(black) _  => stop ...</k>
         <timesToggled> TT:Int => TT +Int 1</timesToggled>
         <log> ... .List => ListItem("The impossible occured.") </log> //this should never occur
@@ -550,12 +550,20 @@ module KPIET
                             <stack> ListItem(0) ListItem(_:Int) ... </stack> //ignoring a div by zero rather than locking up
     
     //mod: Pops the top two values off the stack, calculates the second top value modulo the top value, and pushes the result back on the stack. The result has the same sign as the divisor (the top value). If the top value is zero, this is a divide by zero error, which is handled as an implementation-dependent error, though simply ignoring the command is recommended. (See note below.)
-    rule [instruction-modulo]: 
-                            //TODO: make sure sign is the same as the divisor
-                            <k> mod =>  nop</k>
+    //note: This assumes that the inbuilt %Int is modulus that has same sign as the *divident* rather than divisor
+    rule [instruction-modulo-positive]: 
+                            //divisor is positive, so output must be positive
+                            <k> mod => nop</k>
                             <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> 
                             <log> ... .List => ListItem ("MOD,") </log>
-                            requires notBool (I2 ==Int 0) 
+                            requires notBool (I1 ==Int 0) andBool (I1 >Int 0)
+     rule [instruction-modulo-negative]: 
+                            //divisor is negative, so so it output
+                            <k> mod => nop</k>
+                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(0 -Int ((0 -Int I2) %Int (0 -Int I1))) ... </stack> 
+                            <log> ... .List => ListItem ("MOD,") </log>
+                            requires notBool (I1 ==Int 0) andBool (0 >Int I1)
+
      rule [instruction-modulo-zero]: // ignoring a mod by zero 
                             <k> mod =>  nop</k>
                             <stack> ListItem(0) ListItem(_Int)... </stack>
@@ -674,12 +682,11 @@ module KPIET
                             <k>innum => nop</k>
                             <stack> .List => ListItem(I) ... </stack>                       
                             <log> ... .List => ListItem ("INNUM,") </log>
-
                             <buf> ListItem(I:Int) => .List ...</buf> //TODO: ignore if not an int rather than locking up   
     
                         
 
-    //TODO this is actually disgusting and is a workaround for how K handles inputting strings.
+    //TODO fix this, this is actually disgusting and is a workaround for how K handles inputting strings.
     rule [instruction-incharacter-general]: 
                             <k>inchar => nop</k>
                             <stack> .List => ListItem(ordChar(substrString(S,0,1))) ... </stack>
