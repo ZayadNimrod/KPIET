@@ -434,9 +434,9 @@ module KPIET
     // Get the difference between two colours hues and lightnesses, then look that up on the table of instructions
     rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
     //When a white pixel is involved in the transition, no instruction is exectuted
-    rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => step//moving from white to another pixel results in no operation, but also does not reset the toggle counter
-    rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => step //moving to  white from another pixel results in no operation as above
-    rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => step 
+    rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => nop
+    rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => nop 
+    rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => step  //we don't want to reset toggle counter.
     rule [translate-instruction-from-black]:     <k>TranslateInstruction color(black) _  => stop ...</k>
         <timesToggled> TT:Int => TT +Int 1</timesToggled>
         <log> ... .List => ListItem("The impossible occured.") </log> //this should never occur
@@ -658,7 +658,7 @@ module KPIET
 
             rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k> //ignore if depth too large
                     <stack> S:List </stack>
-                        requires (size(S) >Int Depth)
+                        requires (Depth >Int size(S))
 
             rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> 
                     <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
