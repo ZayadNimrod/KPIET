@@ -512,7 +512,7 @@ module KPIET
                             ...
                             </blocks>
                             <stack> .List => ListItem(I) ... </stack>
-                            <log> ... .List => ListItem ("PUSH,") </log>
+                            <log> ... .List => ListItem ("PUSH,") ListItem(I)</log>
 
 
     //pop: Pops the top value off the stack and discards it.
@@ -579,20 +579,20 @@ module KPIET
     rule [instruction-not-zero]: 
                             <k> not => nop</k>
                             <stack> ListItem(0) => ListItem(1) ... </stack> 
+                            <log> ... .List => ListItem ("NOT,") </log>
 
     //greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
     rule [instruction-greater-top-greater]: 
                             <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
                             <log> ... .List => ListItem ("GR") </log>
+                            when Bottom >Int Top
 
-                            when Top >Int Bottom
     rule [instruction-greater-to-not-greater]: 
                             <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
                             <log> ... .List => ListItem ("LT") </log>
-
-                            when notBool(Top >Int Bottom)
+                            when notBool(Bottom >Int Top)
 
 
     //pointer: Pops the top value off the stack and rotates the DP clockwise that many steps (anticlockwise if negative).
