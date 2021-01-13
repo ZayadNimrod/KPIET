@@ -1,21 +1,22 @@
 Piet
 ====
+```k
+require "helpers.k"
+
+module KPIET
+    imports DOMAINS-SYNTAX
+    imports DOMAINS
+    
+    imports HELPERS
+```
 
 Language Concepts
 -----------------
 
 ### Colours
-|||||||
-| -----------------------| ---------------------------| -------------------------|-------------------------|-------------------------|----------------------------|
-| \#FFC0C0\ light red | \#FFFFC0\  light yellow | \#C0FFC0\ light green | \#C0FFFF\ light cyan | \#C0C0FF\ light blue | \#FFC0FF\ light magenta |
-| \#FF0000\ red       | \#FFFF00\ yellow        | \#00FF00\ green       | \#00FFFF\ cyan       | \#0000FF\ blue       | \#FF00FF\ magenta       |
-| \#C00000\ dark red  | \#C0C000\ dark yellow   | \#00C000\ dark green  | \#00C0C0\ dark cyan  | \#0000C0\ dark blue  | \#C000C0\ dark magenta  |
 
-\#FFFFFF white
 
-\#000000 black
-
-Piet uses 20 distinct colours, as shown in the table at right. The 18
+Piet uses 20 distinct colours, as shown in the table underneath. The 18
 colours in the first 3 rows of the table are related cyclically in the
 following two ways:
 
@@ -26,11 +27,93 @@ following two ways:
 Note that \"light\" is considered to be one step \"darker\" than
 \"dark\", and vice versa. White and black do not fall into either cycle.
 
+
+```k
+    syntax Colour ::=  "color" "(" Lightness Hue ")" | "color" "(" "black" ")" | "color" "(" "white" ")" 
+    syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
+    syntax Lightness ::= "light" | "normal" | "dark" 
+
+    //The difference between two lightnesses of the same lightness is zero
+    rule [lightness-difference-base-light]:         LightnessDifference L1:Lightness   L2:Lightness   => 0  requires L1 ==Lightness L2
+
+    //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
+    rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1 requires notBool(L ==Lightness normal)
+    rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1 requires notBool(L ==Lightness dark)
+    rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1 requires notBool(L ==Lightness light)
+
+    //The difference in hues of the same hues is zero
+    rule [hue-difference-base-red]:             HueDifference       H1:Hue      H2:Hue     => 0 requires H1 ==Hue H2 
+    
+    //If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
+    rule [hue-difference-inductive-yellow]:     HueDifference       H:Hue       yellow  => HueDifference H red      +Int 1 requires notBool notBool(H ==Hue red)
+    rule [hue-difference-inductive-green]:      HueDifference       H:Hue       green   => HueDifference H yellow   +Int 1 requires notBool notBool(H ==Hue yellow)
+    rule [hue-difference-inductive-cyan]:       HueDifference       H:Hue       cyan    => HueDifference H green    +Int 1 requires notBool notBool(H ==Hue green)
+    rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1 requires notBool notBool(H ==Hue cyan)
+    rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1 requires notBool notBool(H ==Hue blue)
+    rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1 requires notBool notBool(H ==Hue magenta)
+```
+
+
+|||||||
+| -----------------------| ---------------------------| -------------------------|-------------------------|-------------------------|----------------------------|
+| \#FFC0C0\ light red | \#FFFFC0\  light yellow | \#C0FFC0\ light green | \#C0FFFF\ light cyan | \#C0C0FF\ light blue | \#FFC0FF\ light magenta |
+| \#FF0000\ red       | \#FFFF00\ yellow        | \#00FF00\ green       | \#00FFFF\ cyan       | \#0000FF\ blue       | \#FF00FF\ magenta       |
+| \#C00000\ dark red  | \#C0C000\ dark yellow   | \#00C000\ dark green  | \#00C0C0\ dark cyan  | \#0000C0\ dark blue  | \#C000C0\ dark magenta  |
+
+\#FFFFFF white
+
+\#000000 black
+
+```k
+syntax Hexcode ::=  "xffc0c0"   | "xff0000" | "xc00000" | 
+                        "xffffc0"   | "xffff00" | "xc0c000" | 
+                        "xc0ffc0"   | "x00ff00" | "x00c000" | 
+                        "xc0ffff"   | "x00ffff" | "x00c0c0" |
+                        "xc0c0ff"   | "x0000ff" | "x0000c0" |
+                        "xffc0ff"   | "xff00ff" | "xc000c0" |
+                        "x000000"   | "xffffff"  | Id
+
+    syntax Colour ::= "TranslateHexcode" Hexcode [function]
+
+    //we always want to convert from hex whenever we can
+    rule H:Hexcode => TranslateHexcode H      [structural]
+                        
+    rule [translate-hexcode-encountered-hexcode-light-red]:     TranslateHexcode xffc0c0 => color ( light red )
+    rule [translate-hexcode-encountered-hexcode-normal-red]:    TranslateHexcode xff0000 => color ( normal red )
+    rule [translate-hexcode-encountered-hexcode-dark-red]:      TranslateHexcode xc00000 => color ( dark red )
+    rule [translate-hexcode-encountered-hexcode-light-yellow]:  TranslateHexcode xffffc0 => color ( light yellow )
+    rule [translate-hexcode-encountered-hexcode-normal-yellow]: TranslateHexcode xffff00 => color ( normal yellow )
+    rule [translate-hexcode-encountered-hexcode-dark-yellow]:   TranslateHexcode xc0c000 => color ( dark yellow )
+    rule [translate-hexcode-encountered-hexcode-light-green]:   TranslateHexcode xc0ffc0 => color ( light green )
+    rule [translate-hexcode-encountered-hexcode-normal-green]:  TranslateHexcode x00ff00 => color ( normal green )
+    rule [translate-hexcode-encountered-hexcode-dark-green]:    TranslateHexcode x00c000 => color ( dark green )
+    rule [translate-hexcode-encountered-hexcode-light-cyan]:    TranslateHexcode xc0ffff => color ( light cyan )
+    rule [translate-hexcode-encountered-hexcode-normal-cyan]:   TranslateHexcode x00ffff => color ( normal cyan )
+    rule [translate-hexcode-encountered-hexcode-dark-cyan]:     TranslateHexcode x00c0c0 => color ( dark cyan )
+    rule [translate-hexcode-encountered-hexcode-light-blue]:    TranslateHexcode xc0c0ff => color ( light blue )
+    rule [translate-hexcode-encountered-hexcode-normal-blue]:   TranslateHexcode x0000ff => color ( normal blue )
+    rule [translate-hexcode-encountered-hexcode-dark-blue]:     TranslateHexcode x0000c0 => color ( dark blue )
+    rule [translate-hexcode-encountered-hexcode-light-magenta]: TranslateHexcode xffc0ff => color ( light magenta )
+    rule [translate-hexcode-encountered-hexcode-normal-magenta]:TranslateHexcode xff00ff => color ( normal magenta )
+    rule [translate-hexcode-encountered-hexcode-dark-magenta]:  TranslateHexcode xc000c0 => color ( dark magenta )
+    
+    rule [translate-hexcode-encountered-hexcode-black]:         TranslateHexcode x000000 => color ( black )
+    rule [translate-hexcode-encountered-hexcode-white]:         TranslateHexcode xffffff => color ( white )    
+    
+```
+
+
+
 Additional colours (such as orange, brown) may be used, though their
 effect is implementation-dependent. In the simplest case, non-standard
 colours are treated by the language interpreter as the same as white, so
 may be used freely wherever white is used. (Another possibility is that
 they are treated the same as black.)
+
+```k
+    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
+    //TODO: need some test on this, i.e program w/non-spec pixel becomes white
+```
 
 ### Codels
 
@@ -250,6 +333,63 @@ below.
 Any operations which cannot be performed (such as popping values when
 not enough are on the stack) are simply ignored, and processing
 continues with the next command.
+
+```k
+endmodule
+```
+
+```k
+module KPIET-SYNTAX
+    imports DOMAINS
+
+    syntax KResult ::= Int | Colour | Coord | Instruction | Bool
+
+    syntax Coord ::= "point" "(" Int "," Int ")"
+
+    syntax Program ::= Lines
+
+    syntax Lines ::= List{Line, ";"}
+    syntax Line ::= List{Pixel, ""} 
+
+    syntax Pixel ::= Colour | Hexcode
+
+
+    syntax DirectionPointer ::= "DP" "(" "^" ")" |"DP" "(" "v" ")" |"DP" "(" "<" ")"|"DP" "(" ">" ")"
+    syntax CodelChooser ::= "CC" "(" "<"  ")"|"CC" "(" ">" ")"
+
+
+    syntax Instruction ::=  VMInstruction
+                        | "TranslateInstruction" Colour Colour [strict]
+                        | "LookupInstruction" Int Int [strict, function]
+                        | "nop"
+                        | "stop"
+                        | "blk" "(" Int ")"
+
+
+    syntax VMInstruction ::=  Instruction1Arg | Instruction2Arg  | "push" | "innum" | "inchar"
+    
+    syntax Instruction1Arg ::=   "pop"   | 
+                                 "not"   |   
+                                 "ptr"   |   
+                                 "switch"|
+                                 "dup"   |  
+                                 "outnum"|   
+                                 "outchar"
+
+
+    syntax Instruction2Arg ::= "add"   |   "sub"   |   "mult"  |
+                    "div"   |   "mod"   |  "great" | "roll"  
+
+
+    syntax Int ::=      "LightnessDifference" Lightness Lightness [function, functional] 
+                    |   "HueDifference" Hue Hue [function, functional]
+
+
+endmodule
+```
+
+
+
 
 *Note on the mod command:* In the original specification of Piet the
 result of a modulo operation with a negative dividend (the second top
