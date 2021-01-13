@@ -115,6 +115,28 @@ they are treated the same as black.)
     //TODO: need some test on this, i.e program w/non-spec pixel becomes white
 ```
 
+
+
+```k
+    configuration <T>    
+    
+        <input color="magenta" stream = "stdin"> .List </input>
+        <output color="Orchid" stream = "stdout"> .List </output>
+        <buf> .List </buf> //this exists to support stdin becuase we cant mutate stdin cells other than consuming the whole string
+
+        <log> .List </log>
+
+        //used when building up <program>
+        <buildingx>-1</buildingx>
+        <buildingy>-1</buildingy>
+        <nextLines> . </nextLines>
+
+
+        //used when building items in <block>
+        <blockworkspace> .List </blockworkspace>
+        <nextBlockID> 0 </nextBlockID>
+```
+
 ### Codels
 
 Piet code takes the form of graphics made up of the recognised colours.
@@ -125,6 +147,11 @@ mean a block of colour equivalent to a single pixel of code, to avoid
 confusion with the actual pixels of the enlarged graphic, of which many
 may make up one codel.
 
+```k 
+        <program> .Map </program> //maps position to colour of the pixel there        
+        <k> $PGM:Program</k>
+```
+
 ### Colour Blocks
 
 The basic unit of Piet code is the colour block. A colour block is a
@@ -133,6 +160,21 @@ blocks of other colours or by the edge of the program graphic. Blocks of
 colour adjacent only diagonally are not considered contiguous. A colour
 block may be any shape and may have \"holes\" of other colours inside
 it, which are not considered part of the block.
+
+```k
+    <owner> .Map </owner> //maps position to the block that codel is in
+
+        //stores all the blocks that have been constructed so far. 
+    <blocks> 
+        <block multiplicity = "*" type="Map">
+            <id> -1 </id>
+            <colour> color(black) </colour>
+            <size> -1 </size>
+            <transitions> .Map </transitions>
+        </block>    
+    </blocks> 
+```
+
 
 ### Stack
 
@@ -148,18 +190,13 @@ to provide a finite maximum stack size. If a finite stack overflows, it
 should be treated as a runtime error, and handling this will be
 implementation dependent.
 
+```k
+    <stack> .List </stack> 
+```
+
+
 ### Program Execution
 
-| **DP**    | **CC**    | **Codel chosen** |
-|-------|-------|--------------|
-| right | left  | uppermost    |
-|       | right | lowermost    |
-| down  | left  | rightmost    |
-|       | right | leftmost     |
-| left  | left  | lowermost    |
-|       | right | uppermost    |
-| up    | left  | leftmost     |
-|       | right | rightmost    |
 
 The Piet language interpreter begins executing a program in the colour
 block which includes the upper left codel of the program. The
@@ -168,6 +205,18 @@ the right. The DP may point either right, left, down or up. The
 interpreter also maintains a *Codel Chooser* (CC), initially pointing
 left. The CC may point either left or right. The directions of the DP
 and CC will often change during program execution.
+
+```
+        <DP>DP (>)</DP> 
+        <CC>CC (<)</CC> 
+        <PP> point(0,0) </PP> //program pointer, points to current pixel
+        <exitedPP> point(0,0)</exitedPP>
+        <timesToggled> 0 </timesToggled>
+```
+
+```k
+  </T>
+```
 
 As it executes the program, the interpreter traverses the colour blocks
 of the program under the following rules:
@@ -183,6 +232,20 @@ of the program under the following rules:
     containing the codel immediately in the direction of the DP.
 
 The interpreter continues doing this until the program terminates.
+
+
+
+
+| **DP**    | **CC**    | **Codel chosen** |
+|-------|-------|--------------|
+| right | left  | uppermost    |
+|       | right | lowermost    |
+| down  | left  | rightmost    |
+|       | right | leftmost     |
+| left  | left  | lowermost    |
+|       | right | uppermost    |
+| up    | left  | leftmost     |
+|       | right | rightmost    |
 
 Syntax Elements
 ---------------
