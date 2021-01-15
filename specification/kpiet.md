@@ -257,7 +257,16 @@ rule [next-step-mapping-exists]:
     <exitedPP> _ => OldPP </exitedPP>
     <program> ... (NewPP +Coord DPToOffset(D)) |-> NewColour:Colour ...</program>       
     <owner> ... OldPP |-> OldBlockID:Int ... </owner>
-    <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
+    <blocks>
+    ... 
+        <block>
+            <id> OldBlockID </id> 
+            <colour> OldColour:Colour </colour> 
+            <size> _Size:Int </size> 
+            <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> 
+        </block>
+    ...
+    </blocks>
     <DP>D:DirectionPointer</DP>
     <CC>C:CodelChooser</CC>
     <blockworkspace> .List </blockworkspace>
@@ -268,7 +277,16 @@ rule [next-step-mapping-exists]:
     <exitedPP> _ => OldPP </exitedPP>
     <program> Program:Map </program>  //out of bounds, so it is unmapped  
     <owner> ... OldPP |-> OldBlockID:Int ... </owner>
-    <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
+    <blocks> 
+    ... 
+        <block> 
+            <id> OldBlockID </id> 
+            <colour> OldColour:Colour </colour> 
+            <size> _Size:Int </size> 
+            <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> 
+        </block>
+    ...
+    </blocks>
     <DP>D:DirectionPointer</DP>
     <CC>C:CodelChooser</CC>
     <blockworkspace> .List </blockworkspace>
@@ -281,7 +299,6 @@ rule [next-step-no-mapping]:
     <owner> M:Map </owner>
     //create a new block
     <blocks> ... (.Bag => <block> 
-    //<blocks> .Set => <block>
             <id>BlockID</id>
             <colour>OldColour</colour> 
             <size>0</size>
@@ -298,7 +315,6 @@ rule [next-step-no-mapping]:
         </block>) ...
     </blocks> 
     <nextBlockID> BlockID:Int => BlockID +Int 1 </nextBlockID>
-    //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
     requires notBool(OldPP in_keys (M))
 
 rule [build-block]:
@@ -353,7 +369,6 @@ rule [build-block-wrong-pixel-out-bounds]:
     <k> makeBlock (Position:Coord, _BlockID:Int) => . ...</k>
     <program> Program:Map </program>
     <owner> Owner:Map </owner>
-    //<PP> CenterPosition:Coord </PP>
     <blockworkspace> B:List</blockworkspace>
     requires Position in_keys(Owner) // the current position is already mapped
         orBool notBool (Position in_keys(Program))// The current position is out of bounds
@@ -625,7 +640,7 @@ above text:*
 ```k
 rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => nop
 rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => nop 
-rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know whne we're retracing our steps...?
+rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know when we're retracing our steps...?
 ```
 
 ### Commands
@@ -652,25 +667,25 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
     rule [instruction-push]:
-                            <k> push => nop </k>  
-                            <exitedPP>PP:Coord </exitedPP>
-                            <owner> ... PP |-> ID:Int ...</owner>
-                            <blocks> 
-                            ...
-                                <block> <id> ID </id><colour>_</colour><size> I:Int</size><transitions>_</transitions></block>
-                            ...
-                            </blocks>
-                            <stack> .List => ListItem(I) ... </stack>
-                            <log> ... .List => ListItem ("PUSH,") ListItem(I)</log>
+        <k> push => nop </k>  
+        <exitedPP>PP:Coord </exitedPP>
+        <owner> ... PP |-> ID:Int ...</owner>
+        <blocks> 
+        ...
+            <block> <id> ID </id><colour>_</colour><size> I:Int</size><transitions>_</transitions></block>
+        ...
+        </blocks>
+        <stack> .List => ListItem(I) ... </stack>
+        <log> ... .List => ListItem ("PUSH,") ListItem(I)</log>
     ```
 
 -   **pop:** Pops the top value off the stack and discards it.
 
     ```k
         rule [instruction-pop]: 
-                            <k> pop =>  nop</k>
-                            <stack>  ListItem(_) => .List ...  </stack>
-                            <log> ... .List => ListItem ("POP,") </log>
+            <k> pop =>  nop</k>
+            <stack>  ListItem(_) => .List ...  </stack>
+            <log> ... .List => ListItem ("POP,") </log>
     ```
 
 -   **add:** Pops the top two values off the stack, adds them, and
@@ -678,9 +693,9 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-add]: 
-                            <k> add =>  nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I1 +Int I2) ... </stack>
-                            <log> ... .List => ListItem ("ADD,") </log>
+            <k> add =>  nop</k>
+            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I1 +Int I2) ... </stack>
+            <log> ... .List => ListItem ("ADD,") </log>
     ```
 
 -   **subtract:** Pops the top two values off the stack, calculates the
@@ -689,9 +704,9 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-subtract]: 
-                            <k> sub =>  nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 -Int I1) ... </stack>
-                            <log> ... .List => ListItem ("SUB,") </log>
+            <k> sub =>  nop</k>
+            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 -Int I1) ... </stack>
+            <log> ... .List => ListItem ("SUB,") </log>
     ```
 
 -   **multiply:** Pops the top two values off the stack, multiplies
@@ -699,9 +714,9 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-multiply]: 
-                            <k> mult =>  nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 *Int I1) ... </stack>
-                            <log> ... .List => ListItem ("MULT,") </log>
+            <k> mult =>  nop</k>
+            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 *Int I1) ... </stack>
+            <log> ... .List => ListItem ("MULT,") </log>
     ```
 
 -   **divide:** Pops the top two values off the stack, calculates the
@@ -712,14 +727,14 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-divide]: 
-                            <k> div =>  nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 /Int I1) ... </stack> 
-                             <log> ... .List => ListItem ("DIV,") </log>
-                            requires notBool (I1 ==Int 0)
+            <k> div =>  nop</k>
+            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 /Int I1) ... </stack> 
+            <log> ... .List => ListItem ("DIV,") </log>
+                requires notBool (I1 ==Int 0)
 
         rule [instruction-divide-by-zero]: 
-                            <k> div =>  nop</k>
-                            <stack> ListItem(0) ListItem(_:Int) ... </stack>
+            <k> div =>  nop</k>
+            <stack> ListItem(0) ListItem(_:Int) ... </stack>
     ```
 
 -   **mod:** Pops the top two values off the stack, calculates the
@@ -734,21 +749,21 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
     ```k
         //note: This assumes that the inbuilt %Int is modulus that has same sign as the *dividend* rather than divisor, there's the possibility I've misunderstood the docs
         rule [instruction-modulo-positive]: 
-                            //divisor is positive, so output must be positive
-                            <k> mod => nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> 
-                            <log> ... .List => ListItem ("MOD,") </log>
-                            requires notBool (I1 ==Int 0) andBool (I1 >Int 0)
+            //divisor is positive, so output must be positive
+            <k> mod => nop</k>
+            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(I2 %Int I1) ... </stack> 
+            <log> ... .List => ListItem ("MOD,") </log>
+                requires notBool (I1 ==Int 0) andBool (I1 >Int 0)
         rule [instruction-modulo-negative]: 
-                            //divisor is negative, so so it output
-                            <k> mod => nop</k>
-                            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(0 -Int ((0 -Int I2) %Int (0 -Int I1))) ... </stack> 
-                            <log> ... .List => ListItem ("MOD,") </log>
-                            requires notBool (I1 ==Int 0) andBool (0 >Int I1)
+            //divisor is negative, so so it output
+            <k> mod => nop</k>
+            <stack> ListItem(I1:Int) ListItem(I2:Int) => ListItem(0 -Int ((0 -Int I2) %Int (0 -Int I1))) ... </stack> 
+            <log> ... .List => ListItem ("MOD,") </log>
+                requires notBool (I1 ==Int 0) andBool (0 >Int I1)
 
         rule [instruction-modulo-zero]: // ignoring a mod by zero 
-                            <k> mod =>  nop</k>
-                            <stack> ListItem(0) ListItem(_Int)... </stack>
+            <k> mod =>  nop</k>
+            <stack> ListItem(0) ListItem(_Int)... </stack>
     ```
 
 -   **not:** Replaces the top value of the stack with 0 if it is
@@ -756,14 +771,14 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-not-nonzero]: 
-                            <k> not => nop</k>
-                            <stack> ListItem(I1:Int) => ListItem(0) ... </stack> 
-                            <log> ... .List => ListItem ("NOT,") </log>
-                            when notBool(I1 ==Int 0)
+            <k> not => nop</k>
+            <stack> ListItem(I1:Int) => ListItem(0) ... </stack> 
+            <log> ... .List => ListItem ("NOT,") </log>
+                when notBool(I1 ==Int 0)
         rule [instruction-not-zero]: 
-                            <k> not => nop</k>
-                            <stack> ListItem(0) => ListItem(1) ... </stack> 
-                            <log> ... .List => ListItem ("NOT,") </log>
+            <k> not => nop</k>
+            <stack> ListItem(0) => ListItem(1) ... </stack> 
+            <log> ... .List => ListItem ("NOT,") </log>
     ```
 -   **greater:** Pops the top two values off the stack, and pushes 1 on
     to the stack if the second top value is greater than the top value,
@@ -771,16 +786,16 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-greater-bot-greater]: 
-                            <k> great =>  nop</k>
-                            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
-                            <log> ... .List => ListItem ("GR") </log>
-                            when Bottom >Int Top
+            <k> great =>  nop</k>
+            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
+            <log> ... .List => ListItem ("GR") </log>
+                requires Bottom >Int Top
 
         rule [instruction-greater-bot-not-greater]: 
-                            <k> great =>  nop</k>
-                            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
-                            <log> ... .List => ListItem ("LT") </log>
-                            when notBool(Bottom >Int Top)
+            <k> great =>  nop</k>
+            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
+            <log> ... .List => ListItem ("LT") </log>
+                requires notBool(Bottom >Int Top)
     ```
 
 -   **pointer:** Pops the top value off the stack and rotates the DP
@@ -788,9 +803,9 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-pointer]:
-                            <k> ptr =>  rotdp(abs(Steps)) ~> nop ...</k>
-                            <stack>ListItem(Steps:Int) => .List ... </stack> 
-                            <log> ... .List => ListItem ("PTR") </log>
+            <k> ptr =>  rotdp(abs(Steps)) ~> nop ...</k>
+            <stack>ListItem(Steps:Int) => .List ... </stack> 
+            <log> ... .List => ListItem ("PTR") </log>
 
 
         syntax State ::= "rotdp" "(" Int ")" [strict]
@@ -815,9 +830,9 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-switch]: 
-                            <k> switch =>  rotcc(abs(C)) ~> nop ...</k>
-                            <stack>ListItem(C:Int) => .List ... </stack> 
-                            <log> ... .List => ListItem ("SWITCH") </log>
+            <k> switch =>  rotcc(abs(C)) ~> nop ...</k>
+            <stack>ListItem(C:Int) => .List ... </stack> 
+            <log> ... .List => ListItem ("SWITCH") </log>
 
 
 
@@ -836,9 +851,9 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-duplicate]: 
-                            <k> dup => nop</k>
-                            <stack>ListItem(Value:Int) => ListItem(Value) ListItem(Value) ...</stack>
-                            <log> ... .List => ListItem ("DUP") </log>
+            <k> dup => nop</k>
+            <stack>ListItem(Value:Int) => ListItem(Value) ListItem(Value) ...</stack>
+            <log> ... .List => ListItem ("DUP") </log>
     ```
 -   **roll:** Pops the top two values off the stack and \"rolls\" the
     remaining stack entries to a depth equal to the second value popped,
@@ -853,34 +868,33 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
     ```k
         rule [instruction-roll]: 
-                            <k>roll => rollby(Depth, NumRolls)</k>
-                            <stack> ListItem(NumRolls:Int) ListItem(Depth:Int) => .List ... </stack>
-                            <log> ... .List => ListItem ("ROLL,") </log>
-                                requires Depth >=Int 0
-    
-    
-    
-        rule                <k>roll => nop</k>
-                            <stack> ListItem(_:Int) ListItem(Depth:Int) => .List ... </stack>
-                                requires 0 >Int Depth //negative depth is an error and ignored
+            <k>roll => rollby(Depth, NumRolls)</k>
+            <stack> ListItem(NumRolls:Int) ListItem(Depth:Int) => .List ... </stack>
+            <log> ... .List => ListItem ("ROLL,") </log>
+                requires Depth >=Int 0  
+        
+        rule [instruction-roll-negative-depth]:
+            <k>roll => nop</k>
+            <stack> ListItem(_:Int) ListItem(Depth:Int) => .List ... </stack>
+                requires 0 >Int Depth //negative depth is an error and ignored
 
         
-            syntax State ::= "rollby" "(" Int "," Int ")" [strict]
-            rule    <k>rollby(_:Int, 0) => nop</k>
+        syntax State ::= "rollby" "(" Int "," Int ")" [strict]
+        rule    <k>rollby(_:Int, 0) => nop</k>
 
-            rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k> //ignore if depth too large
-                    <stack> S:List </stack>
-                        requires (Depth >Int size(S))
+        rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k> //ignore if depth too large
+                <stack> S:List </stack>
+                    requires (Depth >Int size(S))
 
-            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> 
-                    <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
-                        requires NumRolls >Int 0
+        rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> 
+                <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
+                    requires NumRolls >Int 0
 
-            // other (presumably correct) implementations take the value at [depth] and move it to the top of the stack, so that's what I'll do.
-            // I originall thought it meant taking the value at the top and moving it to [depth] from the *bottom* of the stack
-            rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> 
-                    <stack> S:List => (range(S, Depth, size(S) -Int Depth -Int 1  )  range(S, 0, size(S) -Int Depth )  range(S, Depth +Int 1,0) ) </stack>
-                        requires 0 >Int NumRolls
+        // other (presumably correct) implementations take the value at [depth] and move it to the top of the stack, so that's what I'll do.
+        // I originall thought it meant taking the value at the top and moving it to [depth] from the *bottom* of the stack
+        rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> 
+                <stack> S:List => (range(S, Depth, size(S) -Int Depth -Int 1  )  range(S, 0, size(S) -Int Depth )  range(S, Depth +Int 1,0) ) </stack>
+                    requires 0 >Int NumRolls
     ```
 -   **in:** Reads a value from STDIN as either a number or character,
     depending on the particular incarnation of this command and pushes
@@ -904,24 +918,24 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 | **5 Step**     | in (char) | out (number)         | out (char)   |
 
 ```k
-    rule [instruction-resolution-none]:     LookupInstruction 0 0 => nop
-    rule [instruction-resolution-push]:     LookupInstruction 1 0 => push
-    rule [instruction-resolution-pop]:      LookupInstruction 2 0 => pop
-    rule [instruction-resolution-add]:      LookupInstruction 0 1 => add
-    rule [instruction-resolution-subtract]: LookupInstruction 1 1 => sub
-    rule [instruction-resolution-multiply]: LookupInstruction 2 1 => mult
-    rule [instruction-resolution-divide]:   LookupInstruction 0 2 => div
-    rule [instruction-resolution-modulo]:   LookupInstruction 1 2 => mod
-    rule [instruction-resolution-not]:      LookupInstruction 2 2 => not
-    rule [instruction-resolution-greater]:  LookupInstruction 0 3 => great
-    rule [instruction-resolution-pointer]:  LookupInstruction 1 3 => ptr
-    rule [instruction-resolution-switch]:   LookupInstruction 2 3 => switch
-    rule [instruction-resolution-duplicate]:LookupInstruction 0 4 => dup
-    rule [instruction-resolution-roll]:     LookupInstruction 1 4 => roll
-    rule [instruction-resolution-in(num)]:  LookupInstruction 2 4 => innum
-    rule [instruction-resolution-in(char)]: LookupInstruction 0 5 => inchar
-    rule [instruction-resolution-out(num)]: LookupInstruction 1 5 => outnum
-    rule [instruction-resolution-out(char)]:LookupInstruction 2 5 => outchar
+rule [instruction-resolution-none]:     LookupInstruction 0 0 => nop
+rule [instruction-resolution-push]:     LookupInstruction 1 0 => push
+rule [instruction-resolution-pop]:      LookupInstruction 2 0 => pop
+rule [instruction-resolution-add]:      LookupInstruction 0 1 => add
+rule [instruction-resolution-subtract]: LookupInstruction 1 1 => sub
+rule [instruction-resolution-multiply]: LookupInstruction 2 1 => mult
+rule [instruction-resolution-divide]:   LookupInstruction 0 2 => div
+rule [instruction-resolution-modulo]:   LookupInstruction 1 2 => mod
+rule [instruction-resolution-not]:      LookupInstruction 2 2 => not
+rule [instruction-resolution-greater]:  LookupInstruction 0 3 => great
+rule [instruction-resolution-pointer]:  LookupInstruction 1 3 => ptr
+rule [instruction-resolution-switch]:   LookupInstruction 2 3 => switch
+rule [instruction-resolution-duplicate]:LookupInstruction 0 4 => dup
+rule [instruction-resolution-roll]:     LookupInstruction 1 4 => roll
+rule [instruction-resolution-in(num)]:  LookupInstruction 2 4 => innum
+rule [instruction-resolution-in(char)]: LookupInstruction 0 5 => inchar
+rule [instruction-resolution-out(num)]: LookupInstruction 1 5 => outnum
+rule [instruction-resolution-out(char)]:LookupInstruction 2 5 => outchar
 ```
 
 

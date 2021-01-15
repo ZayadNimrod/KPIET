@@ -134,7 +134,6 @@ module KPIET
         <owner> M:Map </owner>
         //create a new block
         <blocks> ... (.Bag => <block> 
-        //<blocks> .Set => <block>
                 <id>BlockID</id>
                 <colour>OldColour</colour> 
                 <size>0</size>
@@ -151,7 +150,6 @@ module KPIET
             </block>) ...
         </blocks> 
         <nextBlockID> BlockID:Int => BlockID +Int 1 </nextBlockID>
-        //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
         requires notBool(OldPP in_keys (M))
 
 
@@ -207,7 +205,6 @@ module KPIET
         <k> makeBlock (Position:Coord, _BlockID:Int) => . ...</k>
         <program> Program:Map </program>
         <owner> Owner:Map </owner>
-        //<PP> CenterPosition:Coord </PP>
         <blockworkspace> B:List</blockworkspace>
         requires Position in_keys(Owner) // the current position is already mapped
             orBool notBool (Position in_keys(Program))// The current position is out of bounds
