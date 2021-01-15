@@ -154,7 +154,7 @@ module KPIET
         //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
         requires notBool(OldPP in_keys (M))
 
-    //spews LLVM
+
     rule [build-block]:
         <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
                 makeBlock (point(X +Int 1, Y),BlockID) ~>
@@ -190,7 +190,6 @@ module KPIET
             andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
 
-    ///This spews LLVM at me
     //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
     rule [build-block-wrong-pixel-wrong-colour]: 
         <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
@@ -436,10 +435,8 @@ module KPIET
     //When a white pixel is involved in the transition, no instruction is exectuted
     rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => nop
     rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => nop 
-    rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => step  //we don't want to reset toggle counter.
-    rule [translate-instruction-from-black]:     <k>TranslateInstruction color(black) _  => stop ...</k>
-        <timesToggled> TT:Int => TT +Int 1</timesToggled>
-        <log> ... .List => ListItem("The impossible occured.") </log> //this should never occur
+    rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know whne we're retracing our steps...?
+
     rule [translate-instruction-to-black]:      
         <k>TranslateInstruction _ color(black)   => blk(TT) ...</k>
         <timesToggled> TT:Int => TT +Int 1</timesToggled>
@@ -551,7 +548,7 @@ module KPIET
                             <stack> ListItem(0) ListItem(_:Int) ... </stack> //ignoring a div by zero rather than locking up
     
     //mod: Pops the top two values off the stack, calculates the second top value modulo the top value, and pushes the result back on the stack. The result has the same sign as the divisor (the top value). If the top value is zero, this is a divide by zero error, which is handled as an implementation-dependent error, though simply ignoring the command is recommended. (See note below.)
-    //note: This assumes that the inbuilt %Int is modulus that has same sign as the *divident* rather than divisor
+    //note: This assumes that the inbuilt %Int is modulus that has same sign as the *dividend* rather than divisor, there's the possibility I've misunderstood the docs
     rule [instruction-modulo-positive]: 
                             //divisor is positive, so output must be positive
                             <k> mod => nop</k>
@@ -582,13 +579,13 @@ module KPIET
                             <log> ... .List => ListItem ("NOT,") </log>
 
     //greater: Pops the top two values off the stack, and pushes 1 on to the stack if the second top value is greater than the top value, and pushes 0 if it is not greater.
-    rule [instruction-greater-top-greater]: 
+    rule [instruction-greater-bot-greater]: 
                             <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
                             <log> ... .List => ListItem ("GR") </log>
                             when Bottom >Int Top
 
-    rule [instruction-greater-to-not-greater]: 
+    rule [instruction-greater-bot-not-greater]: 
                             <k> great =>  nop</k>
                             <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
                             <log> ... .List => ListItem ("LT") </log>
