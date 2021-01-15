@@ -29,24 +29,24 @@ Note that \"light\" is considered to be one step \"darker\" than
 
 
 ```k
-    //The difference between two lightnesses of the same lightness is zero
-    rule [lightness-difference-base-light]:         LightnessDifference L1:Lightness   L2:Lightness   => 0  requires L1 ==Lightness L2
+//The difference between two lightnesses of the same lightness is zero
+rule [lightness-difference-base-light]:         LightnessDifference L1:Lightness   L2:Lightness   => 0  requires L1 ==Lightness L2
 
-    //if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
-    rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1 requires notBool(L ==Lightness normal)
-    rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1 requires notBool(L ==Lightness dark)
-    rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1 requires notBool(L ==Lightness light)
+//if the colours are dissimlair, darken the second lightness one step, check the difference on this new lightness, and add 1 to it
+rule [lightness-difference-inductive-light]:    LightnessDifference L:Lightness       normal  => LightnessDifference L light +Int 1 requires notBool(L ==Lightness normal)
+rule [lightness-difference-inductive-normal]:   LightnessDifference L:Lightness       dark    => LightnessDifference L normal +Int 1 requires notBool(L ==Lightness dark)
+rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness       light   => LightnessDifference L dark +Int 1 requires notBool(L ==Lightness light)
 
-    //The difference in hues of the same hues is zero
-    rule [hue-difference-base-red]:             HueDifference       H1:Hue      H2:Hue     => 0 requires H1 ==Hue H2 
-    
-    //If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
-    rule [hue-difference-inductive-yellow]:     HueDifference       H:Hue       yellow  => HueDifference H red      +Int 1 requires notBool notBool(H ==Hue red)
-    rule [hue-difference-inductive-green]:      HueDifference       H:Hue       green   => HueDifference H yellow   +Int 1 requires notBool notBool(H ==Hue yellow)
-    rule [hue-difference-inductive-cyan]:       HueDifference       H:Hue       cyan    => HueDifference H green    +Int 1 requires notBool notBool(H ==Hue green)
-    rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1 requires notBool notBool(H ==Hue cyan)
-    rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1 requires notBool notBool(H ==Hue blue)
-    rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1 requires notBool notBool(H ==Hue magenta)
+//The difference in hues of the same hues is zero
+rule [hue-difference-base-red]:             HueDifference       H1:Hue      H2:Hue     => 0 requires H1 ==Hue H2 
+
+//If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
+rule [hue-difference-inductive-yellow]:     HueDifference       H:Hue       yellow  => HueDifference H red      +Int 1 requires notBool notBool(H ==Hue red)
+rule [hue-difference-inductive-green]:      HueDifference       H:Hue       green   => HueDifference H yellow   +Int 1 requires notBool notBool(H ==Hue yellow)
+rule [hue-difference-inductive-cyan]:       HueDifference       H:Hue       cyan    => HueDifference H green    +Int 1 requires notBool notBool(H ==Hue green)
+rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1 requires notBool notBool(H ==Hue cyan)
+rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1 requires notBool notBool(H ==Hue blue)
+rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1 requires notBool notBool(H ==Hue magenta)
 ```
 
 
@@ -63,32 +63,32 @@ Note that \"light\" is considered to be one step \"darker\" than
 ```k
 
 
-    syntax Colour ::= "TranslateHexcode" Hexcode [function]
+syntax Colour ::= "TranslateHexcode" Hexcode [function]
 
-    //we always want to convert from hex whenever we can
-    rule H:Hexcode => TranslateHexcode H      [structural]
-                        
-    rule [translate-hexcode-encountered-hexcode-light-red]:     TranslateHexcode xffc0c0 => color ( light red )
-    rule [translate-hexcode-encountered-hexcode-normal-red]:    TranslateHexcode xff0000 => color ( normal red )
-    rule [translate-hexcode-encountered-hexcode-dark-red]:      TranslateHexcode xc00000 => color ( dark red )
-    rule [translate-hexcode-encountered-hexcode-light-yellow]:  TranslateHexcode xffffc0 => color ( light yellow )
-    rule [translate-hexcode-encountered-hexcode-normal-yellow]: TranslateHexcode xffff00 => color ( normal yellow )
-    rule [translate-hexcode-encountered-hexcode-dark-yellow]:   TranslateHexcode xc0c000 => color ( dark yellow )
-    rule [translate-hexcode-encountered-hexcode-light-green]:   TranslateHexcode xc0ffc0 => color ( light green )
-    rule [translate-hexcode-encountered-hexcode-normal-green]:  TranslateHexcode x00ff00 => color ( normal green )
-    rule [translate-hexcode-encountered-hexcode-dark-green]:    TranslateHexcode x00c000 => color ( dark green )
-    rule [translate-hexcode-encountered-hexcode-light-cyan]:    TranslateHexcode xc0ffff => color ( light cyan )
-    rule [translate-hexcode-encountered-hexcode-normal-cyan]:   TranslateHexcode x00ffff => color ( normal cyan )
-    rule [translate-hexcode-encountered-hexcode-dark-cyan]:     TranslateHexcode x00c0c0 => color ( dark cyan )
-    rule [translate-hexcode-encountered-hexcode-light-blue]:    TranslateHexcode xc0c0ff => color ( light blue )
-    rule [translate-hexcode-encountered-hexcode-normal-blue]:   TranslateHexcode x0000ff => color ( normal blue )
-    rule [translate-hexcode-encountered-hexcode-dark-blue]:     TranslateHexcode x0000c0 => color ( dark blue )
-    rule [translate-hexcode-encountered-hexcode-light-magenta]: TranslateHexcode xffc0ff => color ( light magenta )
-    rule [translate-hexcode-encountered-hexcode-normal-magenta]:TranslateHexcode xff00ff => color ( normal magenta )
-    rule [translate-hexcode-encountered-hexcode-dark-magenta]:  TranslateHexcode xc000c0 => color ( dark magenta )
-    
-    rule [translate-hexcode-encountered-hexcode-black]:         TranslateHexcode x000000 => color ( black )
-    rule [translate-hexcode-encountered-hexcode-white]:         TranslateHexcode xffffff => color ( white )    
+//we always want to convert from hex whenever we can
+rule H:Hexcode => TranslateHexcode H      [structural]
+                    
+rule [translate-hexcode-encountered-hexcode-light-red]:     TranslateHexcode xffc0c0 => color ( light red )
+rule [translate-hexcode-encountered-hexcode-normal-red]:    TranslateHexcode xff0000 => color ( normal red )
+rule [translate-hexcode-encountered-hexcode-dark-red]:      TranslateHexcode xc00000 => color ( dark red )
+rule [translate-hexcode-encountered-hexcode-light-yellow]:  TranslateHexcode xffffc0 => color ( light yellow )
+rule [translate-hexcode-encountered-hexcode-normal-yellow]: TranslateHexcode xffff00 => color ( normal yellow )
+rule [translate-hexcode-encountered-hexcode-dark-yellow]:   TranslateHexcode xc0c000 => color ( dark yellow )
+rule [translate-hexcode-encountered-hexcode-light-green]:   TranslateHexcode xc0ffc0 => color ( light green )
+rule [translate-hexcode-encountered-hexcode-normal-green]:  TranslateHexcode x00ff00 => color ( normal green )
+rule [translate-hexcode-encountered-hexcode-dark-green]:    TranslateHexcode x00c000 => color ( dark green )
+rule [translate-hexcode-encountered-hexcode-light-cyan]:    TranslateHexcode xc0ffff => color ( light cyan )
+rule [translate-hexcode-encountered-hexcode-normal-cyan]:   TranslateHexcode x00ffff => color ( normal cyan )
+rule [translate-hexcode-encountered-hexcode-dark-cyan]:     TranslateHexcode x00c0c0 => color ( dark cyan )
+rule [translate-hexcode-encountered-hexcode-light-blue]:    TranslateHexcode xc0c0ff => color ( light blue )
+rule [translate-hexcode-encountered-hexcode-normal-blue]:   TranslateHexcode x0000ff => color ( normal blue )
+rule [translate-hexcode-encountered-hexcode-dark-blue]:     TranslateHexcode x0000c0 => color ( dark blue )
+rule [translate-hexcode-encountered-hexcode-light-magenta]: TranslateHexcode xffc0ff => color ( light magenta )
+rule [translate-hexcode-encountered-hexcode-normal-magenta]:TranslateHexcode xff00ff => color ( normal magenta )
+rule [translate-hexcode-encountered-hexcode-dark-magenta]:  TranslateHexcode xc000c0 => color ( dark magenta )
+
+rule [translate-hexcode-encountered-hexcode-black]:         TranslateHexcode x000000 => color ( black )
+rule [translate-hexcode-encountered-hexcode-white]:         TranslateHexcode xffffff => color ( white )    
     
 ```
 
@@ -101,30 +101,30 @@ may be used freely wherever white is used. (Another possibility is that
 they are treated the same as black.)
 
 ```k
-    rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
-    //TODO: need some test on this, i.e program w/non-spec pixel becomes white
+rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
+//TODO: need some test on this, i.e program w/non-spec pixel becomes white
 ```
 
 
 
 ```k
-    configuration <T>    
-    
-        <input color="magenta" stream = "stdin"> .List </input>
-        <output color="Orchid" stream = "stdout"> .List </output>
-        <buf> .List </buf> //this exists to support stdin becuase we cant mutate stdin cells other than consuming the whole string
+configuration <T>    
 
-        <log> .List </log>
+    <input color="magenta" stream = "stdin"> .List </input>
+    <output color="Orchid" stream = "stdout"> .List </output>
+    <buf> .List </buf> //this exists to support stdin becuase we cant mutate stdin cells other than consuming the whole string
 
-        //used when building up <program>
-        <buildingx>-1</buildingx>
-        <buildingy>-1</buildingy>
-        <nextLines> . </nextLines>
+    <log> .List </log>
+
+    //used when building up <program>
+    <buildingx>-1</buildingx>
+    <buildingy>-1</buildingy>
+    <nextLines> . </nextLines>
 
 
-        //used when building items in <block>
-        <blockworkspace> .List </blockworkspace>
-        <nextBlockID> 0 </nextBlockID>
+    //used when building items in <block>
+    <blockworkspace> .List </blockworkspace>
+    <nextBlockID> 0 </nextBlockID>
 ```
 
 ### Codels
@@ -138,8 +138,8 @@ confusion with the actual pixels of the enlarged graphic, of which many
 may make up one codel.
 
 ```k 
-        <program> .Map </program> //maps position to colour of the pixel there        
-        <k> $PGM:Program </k>
+    <program> .Map </program> //maps position to colour of the pixel there        
+    <k> $PGM:Program </k>
 ```
 
 ### Colour Blocks
@@ -196,16 +196,16 @@ interpreter also maintains a *Codel Chooser* (CC), initially pointing
 left. The CC may point either left or right. The directions of the DP
 and CC will often change during program execution.
 
-```
-        <DP>DP (>)</DP> 
-        <CC>CC (<)</CC> 
-        <PP> point(0,0) </PP> //program pointer, points to current pixel
-        <exitedPP> point(0,0)</exitedPP>
-        <timesToggled> 0 </timesToggled>
+```k
+    <DP>DP (>)</DP> 
+    <CC>CC (<)</CC> 
+    <PP> point(0,0) </PP> //program pointer, points to current pixel
+    <exitedPP> point(0,0)</exitedPP>
+    <timesToggled> 0 </timesToggled>
 ```
 
 ```k
-  </T>
+</T>
 ```
 
 As it executes the program, the interpreter traverses the colour blocks
@@ -241,293 +241,293 @@ The interpreter continues doing this until the program terminates.
 
 
 ```k
-    syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
-    syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
+syntax Direction ::= "direction" "(" DirectionPointer "," CodelChooser ")"
+syntax State ::= "step" | "build" "(" Int ")" | "makeBlock" "(" Coord "," Int ")"
 
-    // Summary of a step
-    // We begin: PP at location, <currentColour> holds colour of the current block, DP/CC in some configuration
-    // Find item in <block> mapped to <PP>. Look up with DP/CC where the PP is next. Update <PP> to this position., and <exitedPP> to the old <PP>
-    //      If this mapping does not exist in <block>, create the block!
-    // Take the colour at the new <PP>, run TranslateInstruction on it and <currentColour>, 
-    // if <k> is step, do again
+// Summary of a step
+// We begin: PP at location, <currentColour> holds colour of the current block, DP/CC in some configuration
+// Find item in <block> mapped to <PP>. Look up with DP/CC where the PP is next. Update <PP> to this position., and <exitedPP> to the old <PP>
+//      If this mapping does not exist in <block>, create the block!
+// Take the colour at the new <PP>, run TranslateInstruction on it and <currentColour>, 
+// if <k> is step, do again
 
-    rule [next-step-mapping-exists]:
-        <k> step => TranslateInstruction OldColour NewColour ... </k>
-        <PP> OldPP:Coord => NewPP +Coord DPToOffset(D) </PP> 
-        <exitedPP> _ => OldPP </exitedPP>
-        <program> ... (NewPP +Coord DPToOffset(D)) |-> NewColour:Colour ...</program>       
-        <owner> ... OldPP |-> OldBlockID:Int ... </owner>
-        <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
-        <DP>D:DirectionPointer</DP>
-        <CC>C:CodelChooser</CC>
-        <blockworkspace> .List </blockworkspace>
+rule [next-step-mapping-exists]:
+    <k> step => TranslateInstruction OldColour NewColour ... </k>
+    <PP> OldPP:Coord => NewPP +Coord DPToOffset(D) </PP> 
+    <exitedPP> _ => OldPP </exitedPP>
+    <program> ... (NewPP +Coord DPToOffset(D)) |-> NewColour:Colour ...</program>       
+    <owner> ... OldPP |-> OldBlockID:Int ... </owner>
+    <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
+    <DP>D:DirectionPointer</DP>
+    <CC>C:CodelChooser</CC>
+    <blockworkspace> .List </blockworkspace>
 
-     rule [next-step-out-of-bounds]:
-        <k> step => TranslateInstruction OldColour color(black) ... </k> //going out of bounds is treated like walking into a black pixel
-        <PP> OldPP:Coord => NewPP +Coord DPToOffset(D) </PP> 
-        <exitedPP> _ => OldPP </exitedPP>
-        <program> Program:Map </program>  //out of bounds, so it is unmapped  
-        <owner> ... OldPP |-> OldBlockID:Int ... </owner>
-        <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
-        <DP>D:DirectionPointer</DP>
-        <CC>C:CodelChooser</CC>
-        <blockworkspace> .List </blockworkspace>
-            requires notBool ((NewPP +Coord DPToOffset(D)) in_keys (Program))
- 
-    rule [next-step-no-mapping]:
-        <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID)  ~> step... </k>
-        <PP> OldPP:Coord </PP>
-        <program> ... OldPP |-> OldColour:Colour ...</program>  //this pixel is in bounds
-        <owner> M:Map </owner>
-        //create a new block
-        <blocks> ... (.Bag => <block> 
-        //<blocks> .Set => <block>
-                <id>BlockID</id>
-                <colour>OldColour</colour> 
-                <size>0</size>
-                <transitions> 
-                    direction(DP(>), CC(>)) |-> OldPP 
-                    direction(DP(>), CC(<)) |-> OldPP 
-                    direction(DP(v), CC(>)) |-> OldPP 
-                    direction(DP(v), CC(<)) |-> OldPP
-                    direction(DP(<), CC(>)) |-> OldPP 
-                    direction(DP(<), CC(<)) |-> OldPP
-                    direction(DP(^), CC(>)) |-> OldPP 
-                    direction(DP(^), CC(<)) |-> OldPP
-                </transitions>  
-            </block>) ...
-        </blocks> 
-        <nextBlockID> BlockID:Int => BlockID +Int 1 </nextBlockID>
-        //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
-        requires notBool(OldPP in_keys (M))
+    rule [next-step-out-of-bounds]:
+    <k> step => TranslateInstruction OldColour color(black) ... </k> //going out of bounds is treated like walking into a black pixel
+    <PP> OldPP:Coord => NewPP +Coord DPToOffset(D) </PP> 
+    <exitedPP> _ => OldPP </exitedPP>
+    <program> Program:Map </program>  //out of bounds, so it is unmapped  
+    <owner> ... OldPP |-> OldBlockID:Int ... </owner>
+    <blocks> ... <block> <id>OldBlockID</id> <colour>OldColour:Colour</colour> <size>_Size:Int </size> <transitions> ... direction(D,C)|-> NewPP:Coord ... </transitions> </block>...</blocks>
+    <DP>D:DirectionPointer</DP>
+    <CC>C:CodelChooser</CC>
+    <blockworkspace> .List </blockworkspace>
+        requires notBool ((NewPP +Coord DPToOffset(D)) in_keys (Program))
 
-    rule [build-block]:
-        <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
-                makeBlock (point(X +Int 1, Y),BlockID) ~>
-                makeBlock (point(X, Y +Int 1),BlockID) ~>             
-                makeBlock (point(X, Y -Int 1),BlockID) ~>
-                makeBlock (point(X -Int 1, Y),BlockID)    
-         ...</k>
-        <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
-        <owner> Owner:Map </owner>
-        <blocks> 
-            ... 
-            <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
-            ...
-        </blocks>
-        <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
-        requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
-            andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
-            andBool notBool(MainColour ==Colour color(white)) //white blocks follow different rules
+rule [next-step-no-mapping]:
+    <k> step => makeBlock(OldPP , BlockID) ~> build(BlockID)  ~> step... </k>
+    <PP> OldPP:Coord </PP>
+    <program> ... OldPP |-> OldColour:Colour ...</program>  //this pixel is in bounds
+    <owner> M:Map </owner>
+    //create a new block
+    <blocks> ... (.Bag => <block> 
+    //<blocks> .Set => <block>
+            <id>BlockID</id>
+            <colour>OldColour</colour> 
+            <size>0</size>
+            <transitions> 
+                direction(DP(>), CC(>)) |-> OldPP 
+                direction(DP(>), CC(<)) |-> OldPP 
+                direction(DP(v), CC(>)) |-> OldPP 
+                direction(DP(v), CC(<)) |-> OldPP
+                direction(DP(<), CC(>)) |-> OldPP 
+                direction(DP(<), CC(<)) |-> OldPP
+                direction(DP(^), CC(>)) |-> OldPP 
+                direction(DP(^), CC(<)) |-> OldPP
+            </transitions>  
+        </block>) ...
+    </blocks> 
+    <nextBlockID> BlockID:Int => BlockID +Int 1 </nextBlockID>
+    //<blockworkspace> .List -> ListItem(oldPP) ...</blockworkspace>
+    requires notBool(OldPP in_keys (M))
 
-
-
-    rule [build-block-white]:
-        <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) => . ...</k>
-        <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
-        <owner> Owner:Map </owner>
-        <blocks> 
-            ... 
-            <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
-            ...
-        </blocks>
-        <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
-        requires (MainColour ==Colour color(white) ) //white pixels make single-pixel blocks
-            andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
-
-
-    //do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
-    rule [build-block-wrong-pixel-wrong-colour]: 
-        <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
-        <program> ... Position |-> OtherColour:Colour ... </program>
-        <blocks> 
-            ... 
-            <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
-            ...
-        </blocks>
-        requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
-          
-
-    
-    rule [build-block-wrong-pixel-out-bounds]:
-        <k> makeBlock (Position:Coord, _BlockID:Int) => . ...</k>
-        <program> Program:Map </program>
-        <owner> Owner:Map </owner>
-        //<PP> CenterPosition:Coord </PP>
-        <blockworkspace> B:List</blockworkspace>
-        requires Position in_keys(Owner) // the current position is already mapped
-            orBool notBool (Position in_keys(Program))// The current position is out of bounds
-            orBool Position in(B) // the current position is already mapped
+rule [build-block]:
+    <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) =>
+            makeBlock (point(X +Int 1, Y),BlockID) ~>
+            makeBlock (point(X, Y +Int 1),BlockID) ~>             
+            makeBlock (point(X, Y -Int 1),BlockID) ~>
+            makeBlock (point(X -Int 1, Y),BlockID)    
+        ...</k>
+    <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
+    <owner> Owner:Map </owner>
+    <blocks> 
+        ... 
+        <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
+        ...
+    </blocks>
+    <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
+    requires (MainColour ==Colour OtherColour) //This is part of the same block that we started from
+        andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
+        andBool notBool(MainColour ==Colour color(white)) //white blocks follow different rules
 
 
 
-    //TODO:the following rules are all very similair, can we fold them together somehow?
-    //<blockworkspace> contains all the pixels in the current block we are building. 
-    //So we should deplete thet cell until it is empty, to create the block
-    rule [build-block-rightright]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block> 
-                <id>BlockID</id> 
-                <colour>_ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(>), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1))  ... </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (X1 >Int X2) 
-            orBool (X1 ==Int X2 andBool Y1 >Int Y2)  //The new point is the new right-bottom pixel in the block
-
-    rule [build-block-rightleft]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ...
-            <block> 
-                <id>BlockID</id> 
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(>), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (X1 >Int X2) 
-            orBool (X1 ==Int X2 andBool  Y2 >Int Y1 )  //The new point is the new right-top pixel in the block
-
-    rule [build-block-downright]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block>
-                <id>BlockID</id>
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(v), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y1 >Int Y2) 
-            orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new bottom-left pixel in the block
-
-    rule [build-block-downleft]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block> 
-                <id>BlockID</id>
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(v), CC(<)) |-> (point(X2:Int,Y2:Int)  => point(X1,Y1) ) ... </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y1 >Int Y2) 
-            orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new bottom-right pixel in the block
-
-    rule [build-block-leftleft]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block>
-                <id>BlockID</id>
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(<), CC(<)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (X2 >Int X1) 
-            orBool (X1 ==Int X2 andBool Y1 >Int Y2 )  //The new point is the new left-bottom pixel in the block
-
-    rule [build-block-leftright]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block> 
-                <id>BlockID</id>
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(<), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (X2 >Int X1) 
-            orBool (X1 ==Int X2 andBool Y2 >Int Y1 )  //The new point is the new left-top pixel in the block
-
-    rule [build-block-upleft]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block>
-                <id>BlockID</id>
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(^), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
-            </block>
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y2 >Int Y1) 
-            orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new top-left pixel in the block
-
-    rule [build-block-upright]: 
-        <k> build (BlockID:Int)  ...</k>
-        <blocks> 
-            ... 
-            <block>
-                <id>BlockID</id>
-                <colour> _ </colour>
-                <size> _ </size>
-                <transitions> ... direction(DP(^), CC(>)) |-> (point(X2:Int,Y2:Int)  =>  point(X1,Y1) ) ...</transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
-        requires (Y2 >Int Y1) 
-            orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new top-right pixel in the block
+rule [build-block-white]:
+    <k> makeBlock (point(X:Int, Y:Int ), BlockID :Int) => . ...</k>
+    <program> ... point(X,Y) |-> OtherColour:Colour ... </program>// The current position is in bounds
+    <owner> Owner:Map </owner>
+    <blocks> 
+        ... 
+        <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
+        ...
+    </blocks>
+    <blockworkspace> ... .List => ListItem(point(X,Y)) </blockworkspace>
+    requires (MainColour ==Colour color(white) ) //white pixels make single-pixel blocks
+        andBool notBool (point(X,Y) in_keys(Owner)) // the current position is not already mapped
 
 
-    //this pixel does not /no longer updates the block edges, so just add it to the block mapping,and increment block size
-    rule [build-block-finish-up]: 
-        <k> build (BlockID:Int) ...</k>
-        <owner> ... .Map => point(X,Y) |-> BlockID</owner>
-        <blocks> 
-            ... 
-            <block>
-                <id>BlockID</id>
-                <colour>_</colour> 
-                <size>Size:Int => Size+Int 1</size>
-                <transitions> 
-                    direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
-                    direction(DP(>), CC(<)) |-> point(RLX:Int, RLY:Int)  
-                    direction(DP(v), CC(>)) |-> point(DRX:Int, DRY:Int)  
-                    direction(DP(v), CC(<)) |-> point(DLX:Int, DLY:Int) 
-                    direction(DP(<), CC(>)) |-> point(LRX:Int, LRY:Int) 
-                    direction(DP(<), CC(<)) |-> point(LLX:Int, LLY:Int) 
-                    direction(DP(^), CC(>)) |-> point(URX:Int, URY:Int)  
-                    direction(DP(^), CC(<)) |-> point(ULX:Int, ULY:Int) 
-                </transitions>
-            </block>
-            ...
-        </blocks>
-        <blockworkspace> ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
-        requires    notBool ((X >Int RRX)  orBool (X ==Int RRX andBool Y >Int RRY)) //not the right-bottom
-            andBool notBool ((X >Int RLX)  orBool (X ==Int RLX andBool RLY >Int Y)) //not the right-top
-            andBool notBool ((Y >Int DRY)  orBool (Y ==Int DRY andBool DRX >Int X)) //not the bottom-left
-            andBool notBool ((Y >Int DLY)  orBool (Y ==Int DLY andBool X >Int DLX)) //not the bottom-right
-            andBool notBool ((LRX >Int X)  orBool (X ==Int LRX andBool LRY >Int Y)) //not the left-top
-            andBool notBool ((LLX >Int X)  orBool (X ==Int LLX andBool Y >Int LLY)) //not the left-bottom
-            andBool notBool ((URY >Int Y)  orBool (Y ==Int URY andBool X >Int URX)) //not the top-right
-            andBool notBool ((ULY >Int Y)  orBool (Y ==Int ULY andBool ULX >Int X)) //not the top-left
+//do not add the pixel into the current block, for some reason; i.e out of bounds, wrong colour, already in block
+rule [build-block-wrong-pixel-wrong-colour]: 
+    <k> makeBlock (Position:Coord, BlockID:Int) => . ...</k>
+    <program> ... Position |-> OtherColour:Colour ... </program>
+    <blocks> 
+        ... 
+        <block> <id>BlockID</id> <colour>MainColour:Colour</colour>...</block>
+        ...
+    </blocks>
+    requires notBool (MainColour ==Colour OtherColour) //This is not part of the block that we started from
+        
 
-    rule [build-block-finished]: //we have finished constructing the block
-        <k> build(_) => . ...</k>
-        <blockworkspace>.List</blockworkspace> 
+
+rule [build-block-wrong-pixel-out-bounds]:
+    <k> makeBlock (Position:Coord, _BlockID:Int) => . ...</k>
+    <program> Program:Map </program>
+    <owner> Owner:Map </owner>
+    //<PP> CenterPosition:Coord </PP>
+    <blockworkspace> B:List</blockworkspace>
+    requires Position in_keys(Owner) // the current position is already mapped
+        orBool notBool (Position in_keys(Program))// The current position is out of bounds
+        orBool Position in(B) // the current position is already mapped
+
+
+
+//TODO:the following rules are all very similair, can we fold them together somehow?
+//<blockworkspace> contains all the pixels in the current block we are building. 
+//So we should deplete thet cell until it is empty, to create the block
+rule [build-block-rightright]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block> 
+            <id>BlockID</id> 
+            <colour>_ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(>), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1))  ... </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (X1 >Int X2) 
+        orBool (X1 ==Int X2 andBool Y1 >Int Y2)  //The new point is the new right-bottom pixel in the block
+
+rule [build-block-rightleft]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ...
+        <block> 
+            <id>BlockID</id> 
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(>), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (X1 >Int X2) 
+        orBool (X1 ==Int X2 andBool  Y2 >Int Y1 )  //The new point is the new right-top pixel in the block
+
+rule [build-block-downright]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block>
+            <id>BlockID</id>
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(v), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (Y1 >Int Y2) 
+        orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new bottom-left pixel in the block
+
+rule [build-block-downleft]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block> 
+            <id>BlockID</id>
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(v), CC(<)) |-> (point(X2:Int,Y2:Int)  => point(X1,Y1) ) ... </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (Y1 >Int Y2) 
+        orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new bottom-right pixel in the block
+
+rule [build-block-leftleft]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block>
+            <id>BlockID</id>
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(<), CC(<)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (X2 >Int X1) 
+        orBool (X1 ==Int X2 andBool Y1 >Int Y2 )  //The new point is the new left-bottom pixel in the block
+
+rule [build-block-leftright]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block> 
+            <id>BlockID</id>
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(<), CC(>)) |-> (point(X2:Int,Y2:Int) => point(X1,Y1) ) ... </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (X2 >Int X1) 
+        orBool (X1 ==Int X2 andBool Y2 >Int Y1 )  //The new point is the new left-top pixel in the block
+
+rule [build-block-upleft]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block>
+            <id>BlockID</id>
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(^), CC(<)) |-> (point(X2:Int,Y2:Int) =>  point(X1,Y1) ) ... </transitions>
+        </block>
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (Y2 >Int Y1) 
+        orBool (Y1 ==Int Y2 andBool X2 >Int X1 )  //The new point is the new top-left pixel in the block
+
+rule [build-block-upright]: 
+    <k> build (BlockID:Int)  ...</k>
+    <blocks> 
+        ... 
+        <block>
+            <id>BlockID</id>
+            <colour> _ </colour>
+            <size> _ </size>
+            <transitions> ... direction(DP(^), CC(>)) |-> (point(X2:Int,Y2:Int)  =>  point(X1,Y1) ) ...</transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace>ListItem(point(X1:Int,Y1:Int)) ... </blockworkspace>
+    requires (Y2 >Int Y1) 
+        orBool (Y1 ==Int Y2 andBool X1 >Int X2 )  //The new point is the new top-right pixel in the block
+
+
+//this pixel does not /no longer updates the block edges, so just add it to the block mapping,and increment block size
+rule [build-block-finish-up]: 
+    <k> build (BlockID:Int) ...</k>
+    <owner> ... .Map => point(X,Y) |-> BlockID</owner>
+    <blocks> 
+        ... 
+        <block>
+            <id>BlockID</id>
+            <colour>_</colour> 
+            <size>Size:Int => Size+Int 1</size>
+            <transitions> 
+                direction(DP(>), CC(>)) |-> point(RRX:Int, RRY:Int) 
+                direction(DP(>), CC(<)) |-> point(RLX:Int, RLY:Int)  
+                direction(DP(v), CC(>)) |-> point(DRX:Int, DRY:Int)  
+                direction(DP(v), CC(<)) |-> point(DLX:Int, DLY:Int) 
+                direction(DP(<), CC(>)) |-> point(LRX:Int, LRY:Int) 
+                direction(DP(<), CC(<)) |-> point(LLX:Int, LLY:Int) 
+                direction(DP(^), CC(>)) |-> point(URX:Int, URY:Int)  
+                direction(DP(^), CC(<)) |-> point(ULX:Int, ULY:Int) 
+            </transitions>
+        </block>
+        ...
+    </blocks>
+    <blockworkspace> ListItem(point(X:Int,Y:Int))=> .List ... </blockworkspace>
+    requires    notBool ((X >Int RRX)  orBool (X ==Int RRX andBool Y >Int RRY)) //not the right-bottom
+        andBool notBool ((X >Int RLX)  orBool (X ==Int RLX andBool RLY >Int Y)) //not the right-top
+        andBool notBool ((Y >Int DRY)  orBool (Y ==Int DRY andBool DRX >Int X)) //not the bottom-left
+        andBool notBool ((Y >Int DLY)  orBool (Y ==Int DLY andBool X >Int DLX)) //not the bottom-right
+        andBool notBool ((LRX >Int X)  orBool (X ==Int LRX andBool LRY >Int Y)) //not the left-top
+        andBool notBool ((LLX >Int X)  orBool (X ==Int LLX andBool Y >Int LLY)) //not the left-bottom
+        andBool notBool ((URY >Int Y)  orBool (Y ==Int URY andBool X >Int URX)) //not the top-right
+        andBool notBool ((ULY >Int Y)  orBool (Y ==Int ULY andBool ULX >Int X)) //not the top-left
+
+rule [build-block-finished]: //we have finished constructing the block
+    <k> build(_) => . ...</k>
+    <blockworkspace>.List</blockworkspace> 
 
 ```
 
@@ -562,25 +562,25 @@ out and the program terminates.
 
 
 ```k
-    rule [translate-instruction-to-black]:      
-        <k>TranslateInstruction _ color(black)   => blk(TT) ...</k>
-        <timesToggled> TT:Int => TT +Int 1 </timesToggled>
+rule [translate-instruction-to-black]:      
+    <k>TranslateInstruction _ color(black)   => blk(TT) ...</k>
+    <timesToggled> TT:Int => TT +Int 1 </timesToggled>
 
-    rule [hit-black-pixel-dp]:
-        <k>blk(I:Int) => rotdp(1) ~> step ...</k>
-        <PP> _ => ExitedPP </PP> //roll back the program pointer
-        <exitedPP> ExitedPP:Coord </exitedPP>
-        <log> ... .List => ListItem("bounced dp") </log>
-        requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 1)
-    rule [hit-black-pixel-c]:
-        <k>blk(I:Int) => rotcc(1) ~> step ...</k>
-        <PP> _ => ExitedPP </PP> //roll back the program pointer
-        <exitedPP> ExitedPP:Coord </exitedPP>
-        <log> ... .List => ListItem("bounced cc") </log>
-        requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 0)
-    rule [hit-black-pixel-too-many]:
-        <k>blk(7) => stop ...</k>
-        <log> ... .List => ListItem("stuck") </log>
+rule [hit-black-pixel-dp]:
+    <k>blk(I:Int) => rotdp(1) ~> step ...</k>
+    <PP> _ => ExitedPP </PP> //roll back the program pointer
+    <exitedPP> ExitedPP:Coord </exitedPP>
+    <log> ... .List => ListItem("bounced dp") </log>
+    requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 1)
+rule [hit-black-pixel-c]:
+    <k>blk(I:Int) => rotcc(1) ~> step ...</k>
+    <PP> _ => ExitedPP </PP> //roll back the program pointer
+    <exitedPP> ExitedPP:Coord </exitedPP>
+    <log> ... .List => ListItem("bounced cc") </log>
+    requires notBool (I ==Int 7) andBool (I %Int 2 ==Int 0)
+rule [hit-black-pixel-too-many]:
+    <k>blk(7) => stop ...</k>
+    <log> ... .List => ListItem("stuck") </log>
 ```
 
 ### White Blocks
@@ -623,9 +623,9 @@ above text:*
     block and execution should terminate.
 
 ```k
-    rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => nop
-    rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => nop 
-    rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know whne we're retracing our steps...?
+rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => nop
+rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => nop 
+rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know whne we're retracing our steps...?
 ```
 
 ### Commands
@@ -642,7 +642,7 @@ transition between colour blocks occurs via a slide across a white
 block, no command is executed. The individual commands are explained
 below.
 ```k
-    rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
+rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) color(L2 H2)  => LookupInstruction LightnessDifference L1 L2 HueDifference H1 H2
 ```
 
 -   **push:** Pushes the value of the colour block just exited on to the
@@ -926,59 +926,59 @@ below.
 
 
 ```k
-    //a NOP occurs after every instruction. Thus, we can reset the timesToggled counter, becuase we did not hit a black pixel
-    rule [process-nop]: 
-        <k> nop => step ...</k> 
-        <PP>P:Coord</PP>
-        <log> ... .List => ListItem (P) </log>
-        <timesToggled> _ => 0 </timesToggled> //[structural]
+//a NOP occurs after every instruction. Thus, we can reset the timesToggled counter, becuase we did not hit a black pixel
+rule [process-nop]: 
+    <k> nop => step ...</k> 
+    <PP> P:Coord </PP>
+    <log> ... .List => ListItem (P) </log>
+    <timesToggled> _ => 0 </timesToggled> //[structural]
 ```
 
 Any operations which cannot be performed (such as popping values when
 not enough are on the stack) are simply ignored, and processing
 continues with the next command.
 ```k
-    rule [ignore-one-arg-instruction]:
-                            <k> _:Instruction1Arg => nop </k>
-                            <stack> S:List </stack>
-                            requires 1 >Int size(S)
+rule [ignore-one-arg-instruction]:
+                        <k> _:Instruction1Arg => nop </k>
+                        <stack> S:List </stack>
+                        requires 1 >Int size(S)
 
-    rule [ignore-two-arg-instruction]:
-                            <k> _:Instruction2Arg => nop </k>
-                            <stack> S:List </stack>
-                            requires 2 >Int size(S)
+rule [ignore-two-arg-instruction]:
+                        <k> _:Instruction2Arg => nop </k>
+                        <stack> S:List </stack>
+                        requires 2 >Int size(S)
 
 ```
 
 
 ```k
-    //####
-    // RELATED TO PARSING PROGRAM INTO <program> CELL
-    //####
-   
-    rule [finished-parsing]:
-        <k>.Lines => step </k>              
+//####
+// RELATED TO PARSING PROGRAM INTO <program> CELL
+//####
 
-    rule [parse-next-line]: 
-        <k>L:Line ; Ls:Lines => L </k>   
-        <nextLines> . => Ls </nextLines>              
-        <buildingx> _X:Int => -1 </buildingx>
-        <buildingy> Y:Int => Y +Int 1 </buildingy>  [structural]
+rule [finished-parsing]:
+    <k>.Lines => step </k>              
 
-    rule [parse-next-line-restore]:
-        <k> .Line => Ls </k> 
-        <nextLines> Ls:Lines => .</nextLines>  [structural]
+rule [parse-next-line]: 
+    <k>L:Line ; Ls:Lines => L </k>   
+    <nextLines> . => Ls </nextLines>              
+    <buildingx> _X:Int => -1 </buildingx>
+    <buildingy> Y:Int => Y +Int 1 </buildingy>  [structural]
 
-    rule [parse-next-pixel]:      
-        <k>P:Pixel  L:Line => P ~> L</k>
-        <buildingx> X:Int => X +Int 1 </buildingx> [structural]
+rule [parse-next-line-restore]:
+    <k> .Line => Ls </k> 
+    <nextLines> Ls:Lines => .</nextLines>  [structural]
 
-    //place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
-    rule [place-pixel-in-map]:
-        <k> C:Colour => . ...</k>
-        <buildingx> X:Int </buildingx>
-        <buildingy> Y:Int </buildingy>
-        <program> ... .Map => point(X,Y) |->  C ...</program> [structural]
+rule [parse-next-pixel]:      
+    <k>P:Pixel  L:Line => P ~> L</k>
+    <buildingx> X:Int => X +Int 1 </buildingx> [structural]
+
+//place the colour index into the program cell, mapped from its position. This means we will be able to look up colours from positions later
+rule [place-pixel-in-map]:
+    <k> C:Colour => . ...</k>
+    <buildingx> X:Int </buildingx>
+    <buildingy> Y:Int </buildingy>
+    <program> ... .Map => point(X,Y) |->  C ...</program> [structural]
 ```
 
 ```k
