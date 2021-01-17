@@ -41,12 +41,12 @@ rule [lightness-difference-inductive-dark]:     LightnessDifference L:Lightness 
 rule [hue-difference-base-red]:             HueDifference       H1:Hue      H2:Hue     => 0 requires H1 ==Hue H2 
 
 //If the colours are dissimiliar, then step the second hue down, then check the hue difference between those two colours, and add 1 to it
-rule [hue-difference-inductive-yellow]:     HueDifference       H:Hue       yellow  => HueDifference H red      +Int 1 requires notBool notBool(H ==Hue red)
-rule [hue-difference-inductive-green]:      HueDifference       H:Hue       green   => HueDifference H yellow   +Int 1 requires notBool notBool(H ==Hue yellow)
-rule [hue-difference-inductive-cyan]:       HueDifference       H:Hue       cyan    => HueDifference H green    +Int 1 requires notBool notBool(H ==Hue green)
-rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1 requires notBool notBool(H ==Hue cyan)
-rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1 requires notBool notBool(H ==Hue blue)
-rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1 requires notBool notBool(H ==Hue magenta)
+rule [hue-difference-inductive-yellow]:     HueDifference       H:Hue       yellow  => HueDifference H red      +Int 1 requires notBool(H ==Hue yellow)
+rule [hue-difference-inductive-green]:      HueDifference       H:Hue       green   => HueDifference H yellow   +Int 1 requires notBool(H ==Hue green)
+rule [hue-difference-inductive-cyan]:       HueDifference       H:Hue       cyan    => HueDifference H green    +Int 1 requires notBool(H ==Hue cyan)
+rule [hue-difference-inductive-blue]:       HueDifference       H:Hue       blue    => HueDifference H cyan     +Int 1 requires notBool(H ==Hue blue)
+rule [hue-difference-inductive-magenta]:    HueDifference       H:Hue       magenta => HueDifference H blue     +Int 1 requires notBool(H ==Hue magenta)
+rule [hue-difference-inductive-red]:        HueDifference       H:Hue       red     => HueDifference H magenta  +Int 1 requires notBool(H ==Hue red)
 ```
 
 
@@ -109,6 +109,7 @@ rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:I
 
 ```k
 configuration <T>    
+    <program> .Map </program> //maps position to colour of the pixel there  
 
     <input color="magenta" stream = "stdin"> .List </input>
     <output color="Orchid" stream = "stdout"> .List </output>
@@ -137,8 +138,7 @@ mean a block of colour equivalent to a single pixel of code, to avoid
 confusion with the actual pixels of the enlarged graphic, of which many
 may make up one codel.
 
-```k 
-    <program> .Map </program> //maps position to colour of the pixel there        
+```k       
     <k> $PGM:Program </k>
 ```
 
@@ -638,8 +638,8 @@ above text:*
     block and execution should terminate.
 
 ```k
-rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(L H)  => nop
-rule [translate-instruction-to-white]:      TranslateInstruction color(L H) color(white)   => nop 
+rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(_ _)  => nop
+rule [translate-instruction-to-white]:      TranslateInstruction color(_ _) color(white)   => nop 
 rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know when we're retracing our steps...?
 ```
 
@@ -867,34 +867,34 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
     is recommended.
 
     ```k
-        rule [instruction-roll]: 
-            <k>roll => rollby(Depth, NumRolls)</k>
-            <stack> ListItem(NumRolls:Int) ListItem(Depth:Int) => .List ... </stack>
-            <log> ... .List => ListItem ("ROLL,") </log>
-                requires Depth >=Int 0  
-        
-        rule [instruction-roll-negative-depth]:
-            <k>roll => nop</k>
-            <stack> ListItem(_:Int) ListItem(Depth:Int) => .List ... </stack>
-                requires 0 >Int Depth //negative depth is an error and ignored
+    rule [instruction-roll]: 
+        <k>roll => rollby(Depth, NumRolls)</k>
+        <stack> ListItem(NumRolls:Int) ListItem(Depth:Int) => .List ... </stack>
+        <log> ... .List => ListItem ("ROLL,") </log>
+            requires Depth >=Int 0  
 
-        
-        syntax State ::= "rollby" "(" Int "," Int ")" [strict]
-        rule    <k>rollby(_:Int, 0) => nop</k>
+    rule [instruction-roll-negative-depth]:
+        <k>roll => nop</k>
+        <stack> ListItem(_:Int) ListItem(Depth:Int) => .List ... </stack>
+            requires 0 >Int Depth //negative depth is an error and ignored
 
-        rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k> //ignore if depth too large
-                <stack> S:List </stack>
-                    requires (Depth >Int size(S))
 
-        rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> 
-                <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
-                    requires NumRolls >Int 0
+    syntax State ::= "rollby" "(" Int "," Int ")" [strict]
+    rule    <k>rollby(_:Int, 0) => nop</k>
 
-        // other (presumably correct) implementations take the value at [depth] and move it to the top of the stack, so that's what I'll do.
-        // I originall thought it meant taking the value at the top and moving it to [depth] from the *bottom* of the stack
-        rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> 
-                <stack> S:List => (range(S, Depth, size(S) -Int Depth -Int 1  )  range(S, 0, size(S) -Int Depth )  range(S, Depth +Int 1,0) ) </stack>
-                    requires 0 >Int NumRolls
+    rule    <k> rollby (Depth:Int, _:Int)=> nop ... </k> //ignore if depth too large
+            <stack> S:List </stack>
+                requires (Depth >Int size(S))
+
+    rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls -Int 1)</k> 
+            <stack> S:List => (range(S, 1, size(S) -Int Depth ) range(S, 0, size(S) -Int 1) range(S, Depth,0) ) </stack>
+                requires NumRolls >Int 0
+
+    // other (presumably correct) implementations take the value at [depth] and move it to the top of the stack, so that's what I'll do.
+    // I originall thought it meant taking the value at the top and moving it to [depth] from the *bottom* of the stack
+    rule    <k>rollby(Depth:Int, NumRolls:Int)=> rollby(Depth, NumRolls +Int 1)</k> 
+            <stack> S:List => (range(S, Depth, size(S) -Int Depth -Int 1  )  range(S, 0, size(S) -Int Depth )  range(S, Depth +Int 1,0) ) </stack>
+                requires 0 >Int NumRolls
     ```
 -   **in:** Reads a value from STDIN as either a number or character,
     depending on the particular incarnation of this command and pushes
@@ -902,9 +902,47 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
     error and the command is ignored. If an integer read does not
     receive an integer value, this is an error and the command is
     ignored.
+
+    ```k
+       
+
+    rule [instruction-in-number-int]: 
+        <k>innum => nop</k>
+        <stack> .List => ListItem(I) ... </stack>                       
+        <log> ... .List => ListItem ("INNUM,") </log>
+        <input> ListItem(I:Int) => .List ...</input> 
+
+    //TODO: this will always rtrigger since Ints can be parsed as Strings...
+    //rule [instruction-in-number-ignore]: 
+    //    <k>innum => nop</k>                     
+    //    <log> ... .List => ListItem ("INNUMIGNORE,") </log>
+    //    <input> ListItem(S:String) => .List ...</input> 
+
+    rule [instruction-in-char]: 
+        <k>inchar => nop</k>
+        <stack> .List => ListItem(#getc(#stdin)) ... </stack> //yes, we're using FFI, I'm very sorry for this, I managed to avoid it until now.      
+        <log> ... .List => ListItem ("INCHAR,") </log>
+
+    ```
+
+
 -   **out:** Pops the top value off the stack and prints it to STDOUT as
     either a number or character, depending on the particular
     incarnation of this command.
+
+    ```k
+    rule [instruction-out-number]: 
+        <k> outnum => nop</k>
+        <stack>ListItem(Value:Int) => .List ...</stack>
+        <output> ... .List => ListItem(Value)</output>
+        <log> ... .List => ListItem ("OUTNUM") </log>
+
+    rule [instruction-out-character]: 
+        <k> outchar => nop</k>
+        <stack>ListItem(Value:Int) => .List ...</stack>
+        <output> ... .List => ListItem(chrChar(Value))</output>     
+        <log> ... .List => ListItem ("OUTCHAR") </log>           
+    ```
 
 
 |                |           | **Lightness Change** |              |
