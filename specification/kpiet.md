@@ -734,7 +734,8 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
 
         rule [instruction-divide-by-zero]: 
             <k> div =>  nop</k>
-            <stack> ListItem(0) ListItem(_:Int) ... </stack>
+            <stack> ListItem(0) ListItem(_:Int) ... </stack> 
+            <log> ... .List => ListItem ("DIV,") </log>
     ```
 
 -   **mod:** Pops the top two values off the stack, calculates the
@@ -764,6 +765,7 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
         rule [instruction-modulo-zero]: // ignoring a mod by zero 
             <k> mod =>  nop</k>
             <stack> ListItem(0) ListItem(_Int)... </stack>
+            <log> ... .List => ListItem ("MOD,") </log>
     ```
 
 -   **not:** Replaces the top value of the stack with 0 if it is
@@ -912,11 +914,14 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
         <log> ... .List => ListItem ("INNUM,") </log>
         <input> ListItem(I:Int) => .List ...</input> 
 
-    //TODO: this will always rtrigger since Ints can be parsed as Strings...
-    //rule [instruction-in-number-ignore]: 
-    //    <k>innum => nop</k>                     
-    //    <log> ... .List => ListItem ("INNUMIGNORE,") </log>
-    //    <input> ListItem(S:String) => .List ...</input> 
+  
+    rule [instruction-in-number-ignore]: 
+        <k>innum => nop</k>                     
+        <log> ... .List => ListItem ("INNUMIGNORE,") ListItem(#getc(#stdin)) </log> //use <log> as a "black hole" cell for the character we ignore from STDIN
+        <input> ListItem(S:String) </input>
+            requires notBool (stringIsInt(S))
+
+
 
     rule [instruction-in-char]: 
         <k>inchar => nop</k>
@@ -940,8 +945,8 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
     rule [instruction-out-character]: 
         <k> outchar => nop</k>
         <stack>ListItem(Value:Int) => .List ...</stack>
-        <output> ... .List => ListItem(chrChar(Value))</output>     
-        <log> ... .List => ListItem ("OUTCHAR") </log>           
+        <output> ... .List => ListItem(chrChar(Value))</output>     //TODO: use #putc instead?
+        <log> ... .List => ListItem ("OUTCHAR") </log>     
     ```
 
 
@@ -984,6 +989,13 @@ rule [process-nop]:
     <PP> P:Coord </PP>
     <log> ... .List => ListItem (P) </log>
     <timesToggled> _ => 0 </timesToggled> //[structural]
+
+////check that we are not in a white loop. If we are, halt the program
+//rule [process-nop-stop]: 
+//    <k> nop => stop </k> 
+//    <log> ... P P </log> //i.e if we see an identical sequence of positions with no intervening instructions, we are in a loop
+
+//    syntax NopList ::= List{Coord,""} //TODO this doesn't work.
 ```
 
 Any operations which cannot be performed (such as popping values when
@@ -993,11 +1005,13 @@ continues with the next command.
 rule [ignore-one-arg-instruction]:
                         <k> _:Instruction1Arg => nop </k>
                         <stack> S:List </stack>
+                        <log> ... .List => ListItem ("IGNORE,") </log>
                         requires 1 >Int size(S)
 
 rule [ignore-two-arg-instruction]:
                         <k> _:Instruction2Arg => nop </k>
                         <stack> S:List </stack>
+                        <log> ... .List => ListItem ("IGNORE,") </log>
                         requires 2 >Int size(S)
 
 ```
@@ -1095,7 +1109,7 @@ module KPIET-SYNTAX
                         "xc0ffff"   | "x00ffff" | "x00c0c0" |
                         "xc0c0ff"   | "x0000ff" | "x0000c0" |
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
-                        "x000000"   | "xffffff"  | Id
+                        "x000000"   | "xffffff" | Id
     //TODO: maybe break this syntax module back into the main module, then I can place syntax next to the appropriate rules
 endmodule
 ```

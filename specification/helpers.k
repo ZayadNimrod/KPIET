@@ -97,5 +97,13 @@ module HELPERS
     rule abs(X:Int) => X:Int requires X >Int 0                  [structural]
     rule abs(X:Int) => 0 -Int X requires notBool (X >Int 0)     [structural]
 
+    syntax Bool ::= "stringIsInt" "(" String ")" [strict, function]
+    
+    //findChar(S ,"-",0) ==Int 0 is the same as "S begins with "-""
+    rule stringIsInt (S:String) => (cleanFromChars(S) ==String "-." andBool findChar(S ,"-",0) ==Int 0) orBool (cleanFromChars(S) ==String "-" andBool findChar(S ,"-",0) ==Int 0) orBool (cleanFromChars(S) ==String ".") orBool (cleanFromChars(S) ==String "")
+  
+    syntax String ::= "cleanFromChars" "(" String")" [strict, function]
+
+    rule cleanFromChars (S) => replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (S,"9", ""),"8", ""),"7", ""),"6", ""),"5", ""),"4", ""),"3", ""),"2", ""),"1", ""),"0", "")
 
 endmodule
