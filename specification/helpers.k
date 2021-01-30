@@ -102,8 +102,21 @@ module HELPERS
     //findChar(S ,"-",0) ==Int 0 is the same as "S begins with "-""
     rule stringIsInt (S:String) => (cleanFromChars(S) ==String "-." andBool findChar(S ,"-",0) ==Int 0) orBool (cleanFromChars(S) ==String "-" andBool findChar(S ,"-",0) ==Int 0) orBool (cleanFromChars(S) ==String ".") orBool (cleanFromChars(S) ==String "")
   
-    syntax String ::= "cleanFromChars" "(" String")" [strict, function]
+    syntax String ::= "cleanFromChars" "(" String ")" [strict, function]
 
     rule cleanFromChars (S) => replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (replaceAll (S,"9", ""),"8", ""),"7", ""),"6", ""),"5", ""),"4", ""),"3", ""),"2", ""),"1", ""),"0", "")
 
+
+    syntax List ::= "getLastN" "(" List "," Int ")" [strict, function]
+    rule getLastN (L:List , I:Int) => range(L, size(L) -Int I, 0) requires size(L) >=Int I
+
+
+    syntax Bool ::= List "==List" List [strict, function]
+    rule L:List ==List L => true
+    rule ListItem(I1) L1:List ==List ListItem(I2) L2:List => #if I1 ==Waypoint I2  #then range(L1,1,0) ==List range(L2,1,0) #else false #fi //AAAA THIS IS NOT GENERIC IT WORKS ONLY FOR THAT ONE TYPE
+    rule L2:List ==List L1:List => false requires notBool (size(L1) ==Int size(L2))
+
+
+    syntax Bool ::= Waypoint "==Waypoint" Waypoint [strict, function]
+    rule WP(point(X1:Int, Y1:Int), C1:Colour) ==Waypoint WP(point(X2:Int, Y2:Int), C2:Colour) => X1 ==Int X2 andBool Y1 ==Int Y2 andBool C1 ==Colour C2 
 endmodule

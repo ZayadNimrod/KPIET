@@ -113,7 +113,6 @@ configuration <T>
 
     <input color="magenta" stream = "stdin"> .List </input>
     <output color="Orchid" stream = "stdout"> .List </output>
-    <buf> .List </buf> //this exists to support stdin becuase we cant mutate stdin cells other than consuming the whole string
 
     <log> .List </log>
 
@@ -126,6 +125,7 @@ configuration <T>
     //used when building items in <block>
     <blockworkspace> .List </blockworkspace>
     <nextBlockID> 0 </nextBlockID>
+    <path> .List</path>
 ```
 
 ### Codels
@@ -640,7 +640,7 @@ above text:*
 ```k
 rule [translate-instruction-from-white]:    TranslateInstruction color(white) color(_ _)  => nop
 rule [translate-instruction-to-white]:      TranslateInstruction color(_ _) color(white)   => nop 
-rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nop //TODO: how do we know when we're retracing our steps...?
+rule [translate-instruction-between-white]: TranslateInstruction color(white) color(white)   => nopW 
 ```
 
 ### Commands
@@ -909,18 +909,17 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
        
 
     rule [instruction-in-number-int]: 
-        <k>innum => nop</k>
+        <k>innum => nop </k>
         <stack> .List => ListItem(I) ... </stack>                       
         <log> ... .List => ListItem ("INNUM,") </log>
         <input> ListItem(I:Int) => .List ...</input> 
 
-  
-    rule [instruction-in-number-ignore]: 
-        <k>innum => nop</k>                     
-        <log> ... .List => ListItem ("INNUMIGNORE,") ListItem(#getc(#stdin)) </log> //use <log> as a "black hole" cell for the character we ignore from STDIN
-        <input> ListItem(S:String) </input>
-            requires notBool (stringIsInt(S))
-
+    //TODO: doesn't work
+    //rule [instruction-in-number-ignore]: 
+    //    <k>innum => nop </k>                     
+    //    <log> ... .List => ListItem ("INNUMIGNORE,") ListItem(#getc(#stdin)) </log> //use <log> as a "black hole" cell for the character we ignore from STDIN
+    //    <input> ListItem(S:String) </input>
+    //        requires notBool (stringIsInt(S))
 
 
     rule [instruction-in-char]: 
@@ -987,15 +986,28 @@ rule [instruction-resolution-out(char)]:LookupInstruction 2 5 => outchar
 rule [process-nop]: 
     <k> nop => step ...</k> 
     <PP> P:Coord </PP>
-    <log> ... .List => ListItem (P) </log>
+    <program> ... P |-> C:Colour ... </program>
+    <path> ... .List => ListItem (WP(P,C)) </path>
     <timesToggled> _ => 0 </timesToggled> //[structural]
 
-////check that we are not in a white loop. If we are, halt the program
-//rule [process-nop-stop]: 
-//    <k> nop => stop </k> 
-//    <log> ... P P </log> //i.e if we see an identical sequence of positions with no intervening instructions, we are in a loop
+//check that we are not in a white loop. If we are, halt the program
+rule [process-nop-loop]: 
+    <k> nopW => #if repeats(L , 1) #then stop #else nop #fi </k> 
+    <path> L </path> 
+    <log> ... .List => ListItem("NOPW") </log>
 
-//    syntax NopList ::= List{Coord,""} //TODO this doesn't work.
+syntax Bool ::= "repeats" "(" List "," Int ")" [strict, function]
+
+rule repeats(L:List , I:Int) => false requires I *Int 2 >=Int size(L) 
+
+
+rule repeats (L:List, I:Int) => ((getLastN(L, I) getLastN(L, I)) ==List getLastN(L, I*Int 2) andBool (notBool (hasNonWhite ( getLastN(L, I*Int 2))))) orBool repeats(L, I +Int 1) requires size(L) >Int I *Int 2
+
+syntax Bool ::= "hasNonWhite" "("  List ")" [strict, function]
+
+rule hasNonWhite (ListItem(WP(_:Coord, color(_:Lightness  _:Hue) )) _:List )=> true //this will also not match black but that shouldn't be in the path anyway - nevermind black does appear
+rule hasNonWhite ((ListItem(WP(_:Coord, color(white))) L:List) )=>  hasNonWhite (L)
+rule hasNonWhite ( .List ) => false
 ```
 
 Any operations which cannot be performed (such as popping values when
@@ -1060,7 +1072,7 @@ module KPIET-SYNTAX
     syntax Hue ::= "red" | "yellow" | "green" | "cyan" | "blue" | "magenta"
     syntax Lightness ::= "light" | "normal" | "dark" 
 
-    syntax KResult ::= Int | Colour | Coord | Instruction | Bool
+    syntax KResult ::= Int | Colour | Coord | Instruction | Bool | Waypoint
 
     syntax Coord ::= "point" "(" Int "," Int ")"
 
@@ -1079,7 +1091,7 @@ module KPIET-SYNTAX
     syntax Instruction ::=  VMInstruction
                         | "TranslateInstruction" Colour Colour [strict]
                         | "LookupInstruction" Int Int [strict, function]
-                        | "nop"
+                        | "nop" | "nopW"
                         | "stop"
                         | "blk" "(" Int ")"
 
@@ -1111,6 +1123,8 @@ module KPIET-SYNTAX
                         "xffc0ff"   | "xff00ff" | "xc000c0" |
                         "x000000"   | "xffffff" | Id
     //TODO: maybe break this syntax module back into the main module, then I can place syntax next to the appropriate rules
+
+    syntax Waypoint ::= "WP" "(" Coord "," Colour ")"
 endmodule
 ```
 
