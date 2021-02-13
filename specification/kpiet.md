@@ -101,8 +101,7 @@ may be used freely wherever white is used. (Another possibility is that
 they are treated the same as black.)
 
 ```k
-rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )  
-//TODO: need some test on this, i.e program w/non-spec pixel becomes white
+rule [translate-hexcode-encountered-illegal]:               TranslateHexcode _:Id => color ( white )
 ```
 
 
@@ -774,12 +773,7 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
     ```k
         rule [instruction-not-nonzero]: 
             <k> not => nop</k>
-            <stack> ListItem(I1:Int) => ListItem(0) ... </stack> 
-            <log> ... .List => ListItem ("NOT,") </log>
-                when notBool(I1 ==Int 0)
-        rule [instruction-not-zero]: 
-            <k> not => nop</k>
-            <stack> ListItem(0) => ListItem(1) ... </stack> 
+            <stack> ListItem(I1:Int) => #if I1 ==Int 0 #then ListItem(1) #else ListItem(0) #fi ... </stack> 
             <log> ... .List => ListItem ("NOT,") </log>
     ```
 -   **greater:** Pops the top two values off the stack, and pushes 1 on
@@ -787,17 +781,10 @@ rule [translate-instruction-colours]:       TranslateInstruction color(L1 H1) co
     and pushes 0 if it is not greater.
 
     ```k
-        rule [instruction-greater-bot-greater]: 
+        rule [instruction-greater]: 
             <k> great =>  nop</k>
-            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(1) ... </stack> 
+            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => #if Bottom >Int Top #then ListItem(1) #else ListItem(0) #fi ... </stack> 
             <log> ... .List => ListItem ("GR") </log>
-                requires Bottom >Int Top
-
-        rule [instruction-greater-bot-not-greater]: 
-            <k> great =>  nop</k>
-            <stack>ListItem(Top:Int) ListItem(Bottom:Int) => ListItem(0) ... </stack> 
-            <log> ... .List => ListItem ("LT") </log>
-                requires notBool(Bottom >Int Top)
     ```
 
 -   **pointer:** Pops the top value off the stack and rotates the DP
